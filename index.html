@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pattern Shadowing Drill</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .word { display: inline-block; transition: all 0.15s ease; padding: 2px 4px; border-radius: 6px; }
+    .highlight-q { background-color: #fef08a; color: #854d0e; transform: scale(1.08); font-weight: 700; }
+    .highlight-a { background-color: #bae6fd; color: #0369a1; transform: scale(1.08); font-weight: 700; }
+  </style>
+</head>
+<body class="bg-slate-100 flex flex-col items-center justify-center min-h-screen p-4 font-sans select-none">
+
+  <!-- 시작 전 화면 (아이폰 오디오 권한 획득용) -->
+  <div id="start-overlay" class="fixed inset-0 bg-indigo-600 flex flex-col items-center justify-center text-white z-50 p-6 text-center">
+    <h1 class="text-3xl font-extrabold mb-4">중2 영어 패턴 마스터</h1>
+    <p class="text-indigo-200 mb-8 text-lg">듣고 큰 소리로 따라 읽어보세요!</p>
+    <button onclick="startApp()" class="bg-white text-indigo-600 text-xl font-bold px-8 py-4 rounded-full shadow-2xl active:scale-95 transition">
+      학습 시작하기 🚀
+    </button>
+  </div>
+
+  <!-- 메인 학습 카드 -->
+  <div class="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 flex flex-col justify-between min-h-[520px]">
+    <!-- 상단 진행률 -->
+    <div class="flex justify-between items-center text-sm font-semibold text-slate-400 mb-4">
+      <span id="progress-text">1 / 1</span>
+      <span id="status-tag" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs">준비</span>
+    </div>
+
+    <!-- 문장 표시 영역 -->
+    <div class="flex-1 flex flex-col justify-center space-y-6">
+      <!-- 질문 카드 -->
+      <div id="q-card" class="p-5 rounded-2xl bg-amber-50/60 border border-amber-100">
+        <span class="text-xs font-bold text-amber-500 uppercase tracking-wide block mb-1">Question</span>
+        <div id="q-text" class="text-2xl font-semibold text-slate-800 leading-relaxed"></div>
+      </div>
+
+      <!-- 답변 카드 -->
+      <div id="a-card" class="p-5 rounded-2xl bg-sky-50/60 border border-sky-100 opacity-40 transition-opacity duration-300">
+        <span class="text-xs font-bold text-sky-500 uppercase tracking-wide block mb-1">Answer</span>
+        <div id="a-text" class="text-2xl font-semibold text-slate-800 leading-relaxed"></div>
+      </div>
+    </div>
+
+    <!-- 하단 따라 읽기 타이머 바 & 컨트롤 -->
+    <div class="mt-6 space-y-4">
+      <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+        <div id="timer-bar" class="bg-emerald-400 h-full w-0 transition-all duration-100 ease-linear"></div>
+      </div>
+      <div class="flex justify-between items-center">
+        <button onclick="prevSentence()" class="text-slate-400 font-bold px-4 py-2 hover:text-slate-600">이전</button>
+        <button id="pause-btn" onclick="togglePlay()" class="bg-slate-800 text-white font-semibold px-6 py-2.5 rounded-full text-sm">일시정지</button>
+        <button onclick="nextSentence()" class="text-slate-400 font-bold px-4 py-2 hover:text-slate-600">다음</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // [설정] 차장님의 구글 시트 "웹에 게시" CSV URL을 아래에 넣으시면 됩니다.
+    // 비어있으면 아래 기본 테스트 데이터로 작동합니다.
+    // -------------------------------------------------------------
+    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS652SvBXaM9QvpiC-EMZI91hGOEWH4Vh5XDQgx_ZgA3wcIO0DD2FBgb6Vf0zlcCY6K523LmewXc2Bf/pub?gid=0&single=true&output=csv"; 
+
+    let drillData = [
+      { q: "Which do you like more, winter or summer?", a: "I like winter better than summer." },
+      { q: "Which do you like more, dogs or cats?", a: "I like dogs better than cats." },
+      { q: "Which do you like more, pizza or burgers?", a: "I like pizza better than burgers." },
+      { q: "Which do you like more, math or English?", a: "I like English better than math." },
+      { q: "Which do you like more, apples or bananas?", a: "I like apples better than bananas." }
+    ];
+
+    let currentIndex = 0;
+    let isPaused = false;
+    let synth = window.speechSynthesis;
+    let englishVoice = null;
+
+    // 음성 로드
+    function loadVoices() {
+      const voices = synth.getVoices();
+      englishVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Samantha') || v.name.includes('Natural') || v.name.includes('Google'))) 
+                  || voices.find(v => v.lang.startsWith('en'));
+    }
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // 구글 시트 CSV 불러오기
+    async function fetchSheetData() {
+      if (!GOOGLE_SHEET_CSV_URL) return;
+      try {
+        const res = await fetch(GOOGLE_SHEET_CSV_URL);
+        const text = await res.text();
+        const rows = text.split('\n').map(r => r.split(',')).filter(r => r.length >= 2 && r[0].trim());
+        if (rows.length > 0) {
+          drillData = rows.map(r => ({ q: r[0].replace(/"/g, '').trim(), a: r[1].replace(/"/g, '').trim() }));
+        }
+      } catch (err) {
+        console.error("구글 시트 로드 실패, 기본 데이터를 사용합니다.", err);
+      }
+    }
+
+    async function startApp() {
+      document.getElementById('start-overlay').style.display = 'none';
+      loadVoices();
+      await fetchSheetData();
+      renderCard();
+      runDrillCycle();
+    }
+
+    function renderCard() {
+      const item = drillData[currentIndex];
+      document.getElementById('progress-text').innerText = `${currentIndex + 1} / ${drillData.length}`;
+      
+      // 단어 span으로 쪼개어 가라오케 준비
+      document.getElementById('q-text').innerHTML = item.q.split(' ').map((w, i) => `<span class="word" id="q-word-${i}">${w}</span>`).join(' ');
+      document.getElementById('a-text').innerHTML = item.a.split(' ').map((w, i) => `<span class="word" id="a-word-${i}">${w}</span>`).join(' ');
+      
+      document.getElementById('a-card').classList.add('opacity-40');
+      document.getElementById('timer-bar').style.width = '0%';
+    }
+
+    function speakText(text, targetPrefix, highlightClass) {
+      return new Promise((resolve) => {
+        if (isPaused) return;
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.voice = englishVoice;
+        utter.rate = 0.85; // 천천히 말하기
+
+        let wordIndex = 0;
+        utter.onboundary = (e) => {
+          if (e.name === 'word') {
+            document.querySelectorAll(`.${highlightClass}`).forEach(el => el.classList.remove(highlightClass));
+            const el = document.getElementById(`${targetPrefix}-word-${wordIndex}`);
+            if (el) el.classList.add(highlightClass);
+            wordIndex++;
+          }
+        };
+
+        utter.onend = () => {
+          document.querySelectorAll(`.${highlightClass}`).forEach(el => el.classList.remove(highlightClass));
+          resolve();
+        };
+
+        synth.speak(utter);
+      });
+    }
+
+    function waitForShadowing(seconds) {
+      return new Promise((resolve) => {
+        document.getElementById('status-tag').innerText = "따라 읽으세요! 🗣️";
+        document.getElementById('status-tag').className = "bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold animate-pulse";
+        
+        const bar = document.getElementById('timer-bar');
+        bar.style.transition = `width ${seconds}s linear`;
+        bar.style.width = '100%';
+
+        setTimeout(() => {
+          bar.style.transition = 'none';
+          bar.style.width = '0%';
+          resolve();
+        }, seconds * 1000);
+      });
+    }
+
+    async function runDrillCycle() {
+      if (isPaused) return;
+
+      // 1. 질문 읽기
+      document.getElementById('status-tag').innerText = "원어민 듣기 🎧";
+      document.getElementById('status-tag').className = "bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold";
+      await speakText(drillData[currentIndex].q, 'q', 'highlight-q');
+
+      // 2. 질문 따라하기 대기 (2.5초)
+      await waitForShadowing(2.5);
+      if (isPaused) return;
+
+      // 3. 답변 읽기
+      document.getElementById('a-card').classList.remove('opacity-40');
+      document.getElementById('status-tag').innerText = "원어민 듣기 🎧";
+      document.getElementById('status-tag').className = "bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-xs font-bold";
+      await speakText(drillData[currentIndex].a, 'a', 'highlight-a');
+
+      // 4. 답변 따라하기 대기 (2.5초)
+      await waitForShadowing(2.5);
+      if (isPaused) return;
+
+      // 다음 문장 자동 진행
+      nextSentence();
+    }
+
+    function nextSentence() {
+      synth.cancel();
+      if (currentIndex < drillData.length - 1) {
+        currentIndex++;
+        renderCard();
+        runDrillCycle();
+      } else {
+        document.getElementById('status-tag').innerText = "학습 완료! 🎉";
+      }
+    }
+
+    function prevSentence() {
+      synth.cancel();
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderCard();
+        runDrillCycle();
+      }
+    }
+
+    function togglePlay() {
+      isPaused = !isPaused;
+      const btn = document.getElementById('pause-btn');
+      if (isPaused) {
+        synth.cancel();
+        btn.innerText = "계속하기";
+        document.getElementById('status-tag').innerText = "일시정지";
+      } else {
+        btn.innerText = "일시정지";
+        runDrillCycle();
+      }
+    }
+  </script>
+</body>
+</html>
