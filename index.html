@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pattern Shadowing Drill</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     .word { display: inline-block; transition: all 0.15s ease; padding: 2px 4px; border-radius: 6px; }
     .highlight-q { background-color: #fef08a; color: #854d0e; transform: scale(1.08); font-weight: 700; }
@@ -88,20 +89,44 @@
       speechSynthesis.onvoiceschanged = loadVoices;
     }
 
-    // 구글 시트 CSV 불러오기
-    async function fetchSheetData() {
-      if (!GOOGLE_SHEET_CSV_URL) return;
-      try {
-        const res = await fetch(GOOGLE_SHEET_CSV_URL);
-        const text = await res.text();
-        const rows = text.split('\n').map(r => r.split(',')).filter(r => r.length >= 2 && r[0].trim());
-        if (rows.length > 0) {
-          drillData = rows.map(r => ({ q: r[0].replace(/"/g, '').trim(), a: r[1].replace(/"/g, '').trim() }));
-        }
-      } catch (err) {
-        console.error("구글 시트 로드 실패, 기본 데이터를 사용합니다.", err);
+// 구글 시트 CSV 파싱 (PapaParse 적용)
+async function fetchSheetData() {
+  if (!GOOGLE_SHEET_CSV_URL) return;
+  try {
+    // 캐시 방지를 위해 타임스탬프 쿼리 부착
+    const cacheBusterUrl = GOOGLE_SHEET_CSV_URL + '&t=' + Date.now();
+    const res = await fetch(cacheBusterUrl);
+    const csvText = await res.text();
+
+    const parsed = Papa.parse(csvText, {
+      skipEmptyLines: true
+    });
+
+    // 1행이 헤더(제목)인지 확인하고 데이터 매핑
+    let rows = parsed.data;
+    if (rows.length > 0) {
+      // 1행 첫 칸에 Q나 질문, Question 등의 단어가 있으면 헤더로 보고 건너뜁니다
+      const firstCell = rows[0][0] ? rows[0][0].toLowerCase() : '';
+      if (firstCell.includes('question') || firstCell.includes('질문') || firstCell.includes('q')) {
+        rows = rows.slice(1);
+      }
+
+      const formatted = rows
+        .filter(r => r[0] && r[1]) // A열, B열 둘 다 내용이 있는 행만 추출
+        .map(r => ({
+          q: r[0].trim(),
+          a: r[1].trim()
+        }));
+
+      if (formatted.length > 0) {
+        drillData = formatted;
+        console.log(`구글 시트에서 총 ${drillData.length}개 문장을 성공적으로 불러왔습니다.`);
       }
     }
+  } catch (err) {
+    console.error("구글 시트 로드 실패:", err);
+  }
+}
 
     async function startApp() {
       document.getElementById('start-overlay').style.display = 'none';
