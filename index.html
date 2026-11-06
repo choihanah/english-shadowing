@@ -347,9 +347,12 @@
             font-size: 0.75rem;
             color: #6366f1;
             background: #eef2ff;
-            padding: 2px 8px;
+            padding: 3px 8px;
             border-radius: 6px;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .sentence-block {
@@ -372,7 +375,7 @@
         .sentence-text {
             font-size: 1.25rem;
             font-weight: 600;
-            line-height: 1.55;
+            line-height: 1.6;
             color: var(--text-main);
             word-break: keep-all;
         }
@@ -394,10 +397,10 @@
 
         /* 💡 단어/수식어 힌트 스타일 */
         .has-hint {
-            border-bottom: 2px dotted #4f46e5;
+            border-bottom: 2px dashed #6366f1;
             cursor: pointer;
-            color: #3730a3;
-            transition: all 0.2s;
+            color: #4338ca;
+            transition: all 0.15s;
         }
 
         .has-hint:active {
@@ -499,7 +502,7 @@
             color: #ffffff;
             padding: 8px 14px;
             border-radius: 10px;
-            font-size: 0.82rem;
+            font-size: 0.84rem;
             font-weight: 600;
             line-height: 1.4;
             box-shadow: 0 10px 25px -3px rgba(0,0,0,0.3);
@@ -508,7 +511,7 @@
             opacity: 0;
             transform: translateY(6px);
             transition: opacity 0.15s ease, transform 0.15s ease;
-            max-width: 260px;
+            max-width: 280px;
             text-align: center;
         }
 
@@ -517,7 +520,6 @@
             transform: translateY(0);
         }
 
-        /* 말풍선 꼬리 */
         .tooltip-bubble::after {
             content: '';
             position: absolute;
@@ -574,7 +576,7 @@
     <main id="dashboardView" class="view-section">
         <div class="banner-card">
             <h2>오늘의 섀도잉 학습</h2>
-            <p>공부할 단원(패턴)을 선택하세요. 점선 단어를 터치하면 뜻이 풍선도움말로 뜹니다!</p>
+            <p>공부할 단원(패턴)을 선택하세요. 점선 단어를 누르면 원어민 발음과 뜻이 함께 나옵니다!</p>
             <div class="sync-info">
                 <span class="sync-dot" id="syncDot"></span>
                 <span id="syncStatus">구글 시트 연결 중...</span>
@@ -615,7 +617,7 @@
             <div class="card" id="studyCard">
                 <div class="card-header">
                     <span id="cardCounter">1 / 2</span>
-                    <span id="hintGuideBadge" class="hint-guide-badge" style="display:none;">💡 단어 탭: 뜻 보기</span>
+                    <span id="hintGuideBadge" class="hint-guide-badge" style="display:none;">🔊 단어 탭: 발음·뜻 듣기</span>
                     <span id="cardCategoryText">중2 1학기</span>
                 </div>
 
@@ -703,7 +705,7 @@
     const playBtn = document.getElementById('playBtn');
 
     // -------------------------------------------------------------
-    // 2. Google Sheets JSONP 로더 (G열: 단어 힌트 추가 파싱)
+    // 2. Google Sheets JSONP 로더
     // -------------------------------------------------------------
     function loadSheetData(isManual = false) {
         if (isManual) {
@@ -759,7 +761,6 @@
                     return String(c[idx].v).trim();
                 };
 
-                // A~F열 + G열(단어·표현 힌트)
                 const cat = getVal(0) || "기본 단원";
                 const unit = getVal(1) || "Lesson 1";
                 const q = getVal(2);
@@ -794,15 +795,13 @@
         }
     };
 
-    // 힌트 텍스트 파싱기: "turn out to be: ~로 드러나다, wipe out = 전멸시키다" 등 유연 처리
+    // 힌트 텍스트 파싱기
     function parseHints(raw) {
         const hintMap = {};
         if (!raw) return hintMap;
 
-        // 줄바꿈, 쉼표, 슬래시, 세미콜론 등으로 항목 분리
         const items = raw.split(/[\r\n,;/]+/).map(s => s.trim()).filter(Boolean);
         items.forEach(item => {
-            // "단어: 뜻" 또는 "단어 = 뜻" 분리
             const match = item.match(/^(.+?)\s*[:=]\s*(.+)$/);
             if (match) {
                 const phrase = match[1].trim().toLowerCase();
@@ -824,7 +823,7 @@
                         qTrans: "너 겨울이랑 여름 중에 어느 쪽을 더 좋아해?",
                         a: "I like winter better than summer.",
                         aTrans: "나는 여름보다 겨울을 더 좋아해.",
-                        hints: { "which": "어느 쪽, 어느 것", "better": "더 좋은, 더 많이" }
+                        hints: { "which": "어느 쪽, 어느 것", "better": "더 좋은" }
                     }
                 ]
             }
@@ -908,7 +907,7 @@
     }
 
     // -------------------------------------------------------------
-    // 5. 섀도잉 카드 렌더링 & 단어 힌트 밑줄 매핑
+    // 5. 섀도잉 카드 렌더링 & 단어 변형(과거형, 분사 등) 유연 매칭
     // -------------------------------------------------------------
     function initCard() {
         hideTooltip();
@@ -919,17 +918,23 @@
         if (!currentUnitItems || currentUnitItems.length === 0) return;
 
         const item = currentUnitItems[currentIndex];
-        const hints = item.hints || {};
+        
+        // 현재 카드의 힌트 + 같은 단원의 전체 힌트 통합 (단원 내 상호 보완)
+        const combinedHints = {};
+        currentUnitItems.forEach(u => {
+            if (u.hints) Object.assign(combinedHints, u.hints);
+        });
+        if (item.hints) Object.assign(combinedHints, item.hints);
 
-        const hasHints = Object.keys(hints).length > 0;
-        hintGuideBadge.style.display = hasHints ? "inline-block" : "none";
+        const hasHints = Object.keys(combinedHints).length > 0;
+        hintGuideBadge.style.display = hasHints ? "flex" : "none";
 
-        qSentenceEl.innerHTML = renderSentenceWithHints(item.q, hints);
+        qSentenceEl.innerHTML = renderSentenceWithHints(item.q, combinedHints);
         qTransEl.textContent = item.qTrans;
 
         if (item.a && item.a.trim().length > 0) {
             answerBlock.style.display = "flex";
-            aSentenceEl.innerHTML = renderSentenceWithHints(item.a, hints);
+            aSentenceEl.innerHTML = renderSentenceWithHints(item.a, combinedHints);
             aTransEl.textContent = item.aTrans;
         } else {
             answerBlock.style.display = "none";
@@ -947,24 +952,49 @@
         nextBtn.disabled = (currentIndex === total - 1);
     }
 
-    // 단어별 렌더링 + 힌트(숙어/단어) 자동 매칭
+    // 단어 변형(generated ↔ generate, turned out ↔ turn out, wiped out ↔ wipe out 등) 스마트 매칭
     function renderSentenceWithHints(text, hints) {
         if (!text) return "";
         const words = text.split(' ');
 
         return words.map(w => {
             const cleanWord = w.replace(/[.,!?'"():;]/g, '').toLowerCase();
+            if (!cleanWord || cleanWord.length < 2) return `<span class="word">${w}</span>`;
 
-            // 1) 단일 단어 일치 체크
-            let foundMeaning = hints[cleanWord] || null;
+            let foundMeaning = null;
+            let spokenWord = cleanWord;
 
-            // 2) 숙어(2단어 이상) 매칭 지원
-            if (!foundMeaning) {
-                for (const phrase in hints) {
-                    if (phrase.includes(' ') && text.toLowerCase().includes(phrase)) {
-                        const phraseWords = phrase.split(' ');
-                        if (phraseWords.includes(cleanWord)) {
-                            foundMeaning = `${phrase} : ${hints[phrase]}`;
+            // 1) 단어 및 변형(ed, ing, s, d 등) 매칭
+            for (const key in hints) {
+                const k = key.toLowerCase();
+                
+                // 단일 단어 일치 또는 과거형/진행형/복수형 변형 매칭
+                if (cleanWord === k ||
+                    cleanWord === k + 'd' ||
+                    cleanWord === k + 'ed' ||
+                    cleanWord === k + 's' ||
+                    cleanWord === k + 'es' ||
+                    cleanWord === k + 'ing' ||
+                    (k.endsWith('e') && cleanWord === k.slice(0, -1) + 'ing') ||
+                    (cleanWord.endsWith('ed') && cleanWord.slice(0, -2) === k) ||
+                    (cleanWord.endsWith('d') && cleanWord.slice(0, -1) === k)) {
+                    foundMeaning = `${k} : ${hints[key]}`;
+                    spokenWord = k;
+                    break;
+                }
+
+                // 2) 숙어(2단어 이상) 매칭: e.g. "turn out to be" in "turned out to be wrong"
+                if (k.includes(' ')) {
+                    const phraseFirstWord = k.split(' ')[0];
+                    if (cleanWord === phraseFirstWord ||
+                        cleanWord === phraseFirstWord + 'ed' ||
+                        cleanWord === phraseFirstWord + 'd' ||
+                        cleanWord === phraseFirstWord + 's') {
+                        // 숙어 전체가 문장에 대략 포함되어 있는지 확인
+                        const basePhraseCore = k.split(' ').slice(1).join(' ');
+                        if (text.toLowerCase().includes(basePhraseCore)) {
+                            foundMeaning = `${key} : ${hints[key]}`;
+                            spokenWord = key;
                             break;
                         }
                     }
@@ -972,7 +1002,7 @@
             }
 
             if (foundMeaning) {
-                return `<span class="word has-hint" onclick="toggleHint(this, event)" data-meaning="${escapeHtml(foundMeaning)}">${w}</span>`;
+                return `<span class="word has-hint" onclick="toggleHint(this, event)" data-meaning="${escapeHtml(foundMeaning)}" data-speak="${escapeHtml(spokenWord)}">${w}</span>`;
             } else {
                 return `<span class="word">${w}</span>`;
             }
@@ -984,24 +1014,27 @@
     }
 
     // -------------------------------------------------------------
-    // 🎈 풍선도움말 (Tooltip) 팝업 동작
+    // 🎈 풍선도움말 (Tooltip) & 🔊 원어민 단어 발음
     // -------------------------------------------------------------
     function toggleHint(el, e) {
         e.stopPropagation();
+
+        const meaning = el.getAttribute('data-meaning');
+        const wordToSpeak = el.getAttribute('data-speak') || el.textContent.replace(/[.,!?'"():;]/g, '');
+
+        // 🔊 클릭 즉시 원어민 단어 발음 재생!
+        speakSingleWord(wordToSpeak);
 
         if (activeTooltipTarget === el) {
             hideTooltip();
             return;
         }
 
-        const meaning = el.getAttribute('data-meaning');
-        if (!meaning) return;
-
         activeTooltipTarget = el;
-        tooltipBubble.textContent = `💡 ${meaning}`;
+        tooltipBubble.innerHTML = `🔊 <strong>${meaning}</strong>`;
         tooltipBubble.classList.add('show');
 
-        // 요소 위치 계산
+        // 위치 계산
         const rect = el.getBoundingClientRect();
         const tooltipWidth = tooltipBubble.offsetWidth;
         const tooltipHeight = tooltipBubble.offsetHeight;
@@ -1009,13 +1042,10 @@
         let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
         let top = rect.top - tooltipHeight - 10;
 
-        // 좌우 화면 벗어남 방지
         if (left < 10) left = 10;
         if (left + tooltipWidth > window.innerWidth - 10) {
             left = window.innerWidth - tooltipWidth - 10;
         }
-
-        // 상단 화면 벗어남 방지
         if (top < 10) {
             top = rect.bottom + 10;
         }
@@ -1024,16 +1054,27 @@
         tooltipBubble.style.top = `${top}px`;
     }
 
+    // 단어 전용 또렷한 원어민 발음 재생
+    function speakSingleWord(word) {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+
+        const utt = new SpeechSynthesisUtterance(word);
+        utt.lang = 'en-US';
+        utt.rate = 0.88; // 단어 학습용으로 약간 차분하고 또렷하게
+        utt.pitch = 1.0;
+        window.speechSynthesis.speak(utt);
+    }
+
     function hideTooltip() {
         tooltipBubble.classList.remove('show');
         activeTooltipTarget = null;
     }
 
-    // 화면 어디든 터치하면 말풍선 닫기
     document.addEventListener('click', hideTooltip);
 
     // -------------------------------------------------------------
-    // 6. 기타 제어 및 네비게이션
+    // 6. 조작 및 네비게이션
     // -------------------------------------------------------------
     function toggleTranslation() {
         isTranslated = !isTranslated;
@@ -1072,7 +1113,7 @@
     }
 
     // -------------------------------------------------------------
-    // 7. Web Speech API 음성 재생 및 하이라이트 동기화
+    // 7. Web Speech API 전체 문장 섀도잉
     // -------------------------------------------------------------
     function stopAudio() {
         if ('speechSynthesis' in window) {
