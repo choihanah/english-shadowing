@@ -273,22 +273,16 @@
             text-overflow: ellipsis;
         }
 
-        /* 컨트롤 패널 */
+        /* 컨트롤 패널 (심플하고 컴팩트) */
         .control-panel {
             background: #f8fafc;
-            padding: 12px 14px;
+            padding: 10px 14px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-            font-size: 0.85rem;
-        }
-
-        .control-row {
-            display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 0.85rem;
         }
 
         .speed-control {
@@ -312,28 +306,6 @@
             background: var(--primary);
             color: #ffffff;
             border-color: var(--primary);
-        }
-
-        .voice-select-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            width: 100%;
-            justify-content: space-between;
-        }
-
-        .voice-select {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--text-main);
-            outline: none;
-            cursor: pointer;
-            flex: 1;
-            max-width: 260px;
         }
 
         .status-badge {
@@ -567,26 +539,16 @@
             <div id="currentUnitBadge" class="current-unit-badge">Lesson 1</div>
         </div>
 
-        <!-- 컨트롤 패널 -->
+        <!-- 컨트롤 패널 (심플 깔끔 복원) -->
         <div class="control-panel">
-            <div class="control-row">
-                <div class="speed-control">
-                    <span style="font-size:0.75rem; color:var(--text-sub); margin-right:4px;">재생 속도</span>
-                    <button class="speed-btn" onclick="setSpeed(0.5, event)">0.5x</button>
-                    <button class="speed-btn" onclick="setSpeed(0.75, event)">0.75x</button>
-                    <button class="speed-btn active" onclick="setSpeed(1.0, event)">1.0x</button>
-                    <button class="speed-btn" onclick="setSpeed(1.2, event)">1.2x</button>
-                </div>
-                <div id="statusBadge" class="status-badge">대기 중</div>
+            <div class="speed-control">
+                <span style="font-size:0.78rem; font-weight:600; color:var(--text-sub); margin-right:4px;">속도</span>
+                <button class="speed-btn" onclick="setSpeed(0.5, event)">0.5x</button>
+                <button class="speed-btn" onclick="setSpeed(0.75, event)">0.75x</button>
+                <button class="speed-btn active" onclick="setSpeed(1.0, event)">1.0x</button>
+                <button class="speed-btn" onclick="setSpeed(1.2, event)">1.2x</button>
             </div>
-            <div class="control-row">
-                <div class="voice-select-wrapper">
-                    <span style="font-size:0.78rem; font-weight:600; color:var(--text-main);">🎙️ 원어민 음성</span>
-                    <select id="voiceSelect" class="voice-select" onchange="changeVoice(this.value)">
-                        <option value="">미국 표준 음성 불러오는 중...</option>
-                    </select>
-                </div>
-            </div>
+            <div id="statusBadge" class="status-badge">대기 중</div>
         </div>
 
         <!-- 학습 카드 영역 -->
@@ -650,8 +612,6 @@
     let currentSpeed = 1.0;
     let isTranslated = false;
     let isPlaying = false;
-    let selectedVoice = null;
-    let availableVoices = [];
 
     // DOM 요소
     const dashboardView = document.getElementById('dashboardView');
@@ -662,7 +622,6 @@
     const syncDot = document.getElementById('syncDot');
     const currentUnitBadge = document.getElementById('currentUnitBadge');
     const cardCategoryText = document.getElementById('cardCategoryText');
-    const voiceSelect = document.getElementById('voiceSelect');
     const answerBlock = document.getElementById('answerBlock');
 
     const qSentenceEl = document.getElementById('qSentence');
@@ -931,98 +890,8 @@
     }
 
     // -------------------------------------------------------------
-    // 6. 엄격한 미국식 표준 영어(en-US) 고품질 음성 엔진
+    // 6. 깔끔한 표준 음성 엔진 (언어 설정: en-US 기본 표준)
     // -------------------------------------------------------------
-    function initVoices() {
-        if (!('speechSynthesis' in window)) return;
-
-        const all = window.speechSynthesis.getVoices();
-        if (!all || all.length === 0) return;
-
-        // 영국식(en-GB), 호주식(en-AU) 철저 배제! 오직 순수 미국 영어(en-US)만 엄격 필터링
-        availableVoices = all.filter(v => {
-            const lang = (v.lang || '').replace('_', '-').toLowerCase();
-            return lang === 'en-us';
-        });
-
-        // 만약 en-US가 전혀 없는 기기인 경우에만 en으로 확장
-        if (availableVoices.length === 0) {
-            availableVoices = all.filter(v => (v.lang || '').toLowerCase().startsWith('en') && !(v.lang || '').toLowerCase().includes('gb'));
-        }
-
-        // 신뢰감 있고 생기 있는 미국 성우 톤 우선순위 정렬
-        // (1위: Guy - 편안하고 생기있는 미국 남성 팟캐스트 톤)
-        // (2위: Jenny - 명확하고 신뢰감 있는 미국 여성 톤)
-        // (3위: Aria - 맑은 뉴스 앵커 톤)
-        // (4위: Google US / Samantha)
-        availableVoices.sort((a, b) => {
-            const score = (v) => {
-                const name = v.name.toLowerCase();
-                if (name.includes('guy') && name.includes('natural')) return 100;
-                if (name.includes('jenny') && name.includes('natural')) return 95;
-                if (name.includes('aria') && name.includes('natural')) return 90;
-                if (name.includes('christopher') && name.includes('natural')) return 88;
-                if (name.includes('natural')) return 85;
-                if (name.includes('google') && name.includes('us')) return 80;
-                if (name.includes('samantha')) return 75;
-                if (name.includes('siri')) return 70;
-                if (name.includes('david')) return 30; // 오래된 기계음
-                if (name.includes('zira')) return 25;
-                return 50;
-            };
-            return score(b) - score(a);
-        });
-
-        // 선택 드롭다운 채우기 (친절한 한글 라벨)
-        voiceSelect.innerHTML = "";
-        availableVoices.forEach((v) => {
-            const opt = document.createElement('option');
-            opt.value = v.name;
-            const nameLow = v.name.toLowerCase();
-
-            let friendlyName = v.name;
-            if (nameLow.includes('guy')) {
-                friendlyName = "🇺🇸 미국 남성 - Guy (생기있고 자연스러운 톤)";
-            } else if (nameLow.includes('jenny')) {
-                friendlyName = "🇺🇸 미국 여성 - Jenny (또렷하고 밝은 톤)";
-            } else if (nameLow.includes('aria')) {
-                friendlyName = "🇺🇸 미국 여성 - Aria (뉴스 앵커 톤)";
-            } else if (nameLow.includes('christopher')) {
-                friendlyName = "🇺🇸 미국 남성 - Christopher (차분한 톤)";
-            } else if (nameLow.includes('google')) {
-                friendlyName = "🇺🇸 미국 표준 - Google US English";
-            } else if (nameLow.includes('samantha')) {
-                friendlyName = "🇺🇸 미국 표준 - Apple Samantha";
-            } else {
-                friendlyName = `🇺🇸 미국 영어 - ${v.name.replace(/Microsoft |Google /g, '')}`;
-            }
-
-            opt.textContent = friendlyName;
-            voiceSelect.appendChild(opt);
-        });
-
-        // 저장된 보이스 또는 최고 추천 보이스 자동 선택
-        const saved = localStorage.getItem('shadowing_voice_v2');
-        if (saved && availableVoices.some(v => v.name === saved)) {
-            selectedVoice = availableVoices.find(v => v.name === saved);
-            voiceSelect.value = saved;
-        } else if (availableVoices.length > 0) {
-            selectedVoice = availableVoices[0];
-            voiceSelect.value = selectedVoice.name;
-        }
-    }
-
-    function changeVoice(voiceName) {
-        selectedVoice = availableVoices.find(v => v.name === voiceName);
-        if (selectedVoice) {
-            localStorage.setItem('shadowing_voice_v2', selectedVoice.name);
-        }
-        if (isPlaying) {
-            stopAudio();
-            startShadowing();
-        }
-    }
-
     function stopAudio() {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
@@ -1053,20 +922,14 @@
         const utterance = new SpeechSynthesisUtterance(fullText);
         utterance.lang = 'en-US';
         utterance.rate = currentSpeed;
-        
-        // 인위적인 변조를 완전히 없애고 성우 본래의 가장 자연스러운 울림(1.0)으로 고정!
         utterance.pitch = 1.0;
-
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-        }
 
         const qWords = qSentenceEl.querySelectorAll('.word');
         const aWords = aSentenceEl.querySelectorAll('.word');
 
         utterance.onstart = () => {
             isPlaying = true;
-            statusBadge.textContent = "🎧 원어민 음성 재생 중...";
+            statusBadge.textContent = "🎧 음성 재생 중...";
             playBtn.innerHTML = "⏹ 멈추기";
         };
 
@@ -1151,11 +1014,6 @@
                 movePage(-1);
             }
         }
-    }
-
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.onvoiceschanged = initVoices;
-        initVoices();
     }
 
     loadSheetData();
