@@ -345,7 +345,7 @@
 
         .hint-guide-badge {
             font-size: 0.75rem;
-            color: #6366f1;
+            color: #4f46e5;
             background: #eef2ff;
             padding: 3px 8px;
             border-radius: 6px;
@@ -382,8 +382,8 @@
 
         /* 하이라이트 효과 */
         .word {
-            display: inline-block;
-            padding: 2px 3px;
+            display: inline;
+            padding: 2px 2px;
             border-radius: 4px;
             transition: all 0.12s ease;
             position: relative;
@@ -392,20 +392,21 @@
         .word.highlight {
             background-color: var(--highlight-bg);
             border-bottom: 2.5px solid var(--highlight-border);
-            transform: scale(1.04);
         }
 
-        /* 💡 단어/수식어 힌트 스타일 */
+        /* 💡 단어/숙어 전체 밑줄 스타일 */
         .has-hint {
-            border-bottom: 2px dashed #6366f1;
+            border-bottom: 2.5px dashed #4f46e5;
             cursor: pointer;
-            color: #4338ca;
+            color: #3730a3;
             transition: all 0.15s;
+            padding: 1px 2px;
+            border-radius: 4px;
+            background-color: rgba(79, 70, 229, 0.04);
         }
 
         .has-hint:active {
             background-color: #e0e7ff;
-            border-radius: 4px;
         }
 
         /* 번역문 */
@@ -576,7 +577,7 @@
     <main id="dashboardView" class="view-section">
         <div class="banner-card">
             <h2>오늘의 섀도잉 학습</h2>
-            <p>공부할 단원(패턴)을 선택하세요. 점선 단어를 누르면 원어민 발음과 뜻이 함께 나옵니다!</p>
+            <p>공부할 단원(패턴)을 선택하세요. 점선 단어·숙어를 누르면 원어민 발음과 뜻이 함께 나옵니다!</p>
             <div class="sync-info">
                 <span class="sync-dot" id="syncDot"></span>
                 <span id="syncStatus">구글 시트 연결 중...</span>
@@ -617,7 +618,7 @@
             <div class="card" id="studyCard">
                 <div class="card-header">
                     <span id="cardCounter">1 / 2</span>
-                    <span id="hintGuideBadge" class="hint-guide-badge" style="display:none;">🔊 단어 탭: 발음·뜻 듣기</span>
+                    <span id="hintGuideBadge" class="hint-guide-badge" style="display:none;">🔊 표현 탭: 발음·뜻 듣기</span>
                     <span id="cardCategoryText">중2 1학기</span>
                 </div>
 
@@ -795,7 +796,6 @@
         }
     };
 
-    // 힌트 텍스트 파싱기
     function parseHints(raw) {
         const hintMap = {};
         if (!raw) return hintMap;
@@ -907,7 +907,7 @@
     }
 
     // -------------------------------------------------------------
-    // 5. 섀도잉 카드 렌더링 & 단어 변형(과거형, 분사 등) 유연 매칭
+    // 5. 섀도잉 카드 렌더링 & 전체 숙어(turned out to be) 통째 밑줄 매핑
     // -------------------------------------------------------------
     function initCard() {
         hideTooltip();
@@ -919,7 +919,7 @@
 
         const item = currentUnitItems[currentIndex];
         
-        // 현재 카드의 힌트 + 같은 단원의 전체 힌트 통합 (단원 내 상호 보완)
+        // 단원 내 모든 힌트 통합 (단어 수가 긴 숙어부터 우선 매칭되도록 내림차순 정렬)
         const combinedHints = {};
         currentUnitItems.forEach(u => {
             if (u.hints) Object.assign(combinedHints, u.hints);
@@ -929,12 +929,12 @@
         const hasHints = Object.keys(combinedHints).length > 0;
         hintGuideBadge.style.display = hasHints ? "flex" : "none";
 
-        qSentenceEl.innerHTML = renderSentenceWithHints(item.q, combinedHints);
+        qSentenceEl.innerHTML = renderFullSentenceWithPhrases(item.q, combinedHints);
         qTransEl.textContent = item.qTrans;
 
         if (item.a && item.a.trim().length > 0) {
             answerBlock.style.display = "flex";
-            aSentenceEl.innerHTML = renderSentenceWithHints(item.a, combinedHints);
+            aSentenceEl.innerHTML = renderFullSentenceWithPhrases(item.a, combinedHints);
             aTransEl.textContent = item.aTrans;
         } else {
             answerBlock.style.display = "none";
@@ -952,61 +952,93 @@
         nextBtn.disabled = (currentIndex === total - 1);
     }
 
-    // 단어 변형(generated ↔ generate, turned out ↔ turn out, wiped out ↔ wipe out 등) 스마트 매칭
-    function renderSentenceWithHints(text, hints) {
+    // 숙어(다중 단어)와 단일 단어를 구분하여 통째로 밑줄을 긋는 고급 매칭 엔진
+    function renderFullSentenceWithPhrases(text, hints) {
         if (!text) return "";
-        const words = text.split(' ');
 
-        return words.map(w => {
-            const cleanWord = w.replace(/[.,!?'"():;]/g, '').toLowerCase();
-            if (!cleanWord || cleanWord.length < 2) return `<span class="word">${w}</span>`;
+        // 힌트 키들을 길이(단어 수)가 긴 순서대로 정렬 (긴 숙어가 먼저 매칭되도록!)
+        const sortedKeys = Object.keys(hints).sort((a, b) => b.length - a.length);
 
-            let foundMeaning = null;
-            let spokenWord = cleanWord;
+        // 매칭 구간을 찾아서 보관할 리스트 [{start, end, meaning, phrase}]
+        const matches = [];
 
-            // 1) 단어 및 변형(ed, ing, s, d 등) 매칭
-            for (const key in hints) {
-                const k = key.toLowerCase();
+        sortedKeys.forEach(key => {
+            const regex = buildFlexibleRegex(key);
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                const start = match.index;
+                const end = start + match[0].length;
                 
-                // 단일 단어 일치 또는 과거형/진행형/복수형 변형 매칭
-                if (cleanWord === k ||
-                    cleanWord === k + 'd' ||
-                    cleanWord === k + 'ed' ||
-                    cleanWord === k + 's' ||
-                    cleanWord === k + 'es' ||
-                    cleanWord === k + 'ing' ||
-                    (k.endsWith('e') && cleanWord === k.slice(0, -1) + 'ing') ||
-                    (cleanWord.endsWith('ed') && cleanWord.slice(0, -2) === k) ||
-                    (cleanWord.endsWith('d') && cleanWord.slice(0, -1) === k)) {
-                    foundMeaning = `${k} : ${hints[key]}`;
-                    spokenWord = k;
-                    break;
-                }
-
-                // 2) 숙어(2단어 이상) 매칭: e.g. "turn out to be" in "turned out to be wrong"
-                if (k.includes(' ')) {
-                    const phraseFirstWord = k.split(' ')[0];
-                    if (cleanWord === phraseFirstWord ||
-                        cleanWord === phraseFirstWord + 'ed' ||
-                        cleanWord === phraseFirstWord + 'd' ||
-                        cleanWord === phraseFirstWord + 's') {
-                        // 숙어 전체가 문장에 대략 포함되어 있는지 확인
-                        const basePhraseCore = k.split(' ').slice(1).join(' ');
-                        if (text.toLowerCase().includes(basePhraseCore)) {
-                            foundMeaning = `${key} : ${hints[key]}`;
-                            spokenWord = key;
-                            break;
-                        }
-                    }
+                // 이미 다른 긴 숙어에 겹치지 않는 경우만 추가
+                const overlap = matches.some(m => (start < m.end && end > m.start));
+                if (!overlap) {
+                    matches.push({
+                        start,
+                        end,
+                        matchedText: match[0],
+                        key: key,
+                        meaning: `${key} : ${hints[key]}`
+                    });
                 }
             }
+        });
 
-            if (foundMeaning) {
-                return `<span class="word has-hint" onclick="toggleHint(this, event)" data-meaning="${escapeHtml(foundMeaning)}" data-speak="${escapeHtml(spokenWord)}">${w}</span>`;
-            } else {
-                return `<span class="word">${w}</span>`;
+        // 시작 인덱스 순으로 정렬
+        matches.sort((a, b) => a.start - b.start);
+
+        // 텍스트 조각들을 순회하며 HTML 조립
+        let resultHtml = "";
+        let cursor = 0;
+
+        matches.forEach(m => {
+            // 숙어 앞의 일반 텍스트들
+            if (m.start > cursor) {
+                const plainSegment = text.slice(cursor, m.start);
+                resultHtml += wrapPlainWords(plainSegment);
             }
-        }).join(' ');
+            // 숙어/단어 덩어리 통째로 래핑!
+            resultHtml += `<span class="word has-hint" onclick="toggleHint(this, event)" data-meaning="${escapeHtml(m.meaning)}" data-speak="${escapeHtml(m.matchedText)}">${m.matchedText}</span>`;
+            cursor = m.end;
+        });
+
+        // 남은 뒤쪽 텍스트
+        if (cursor < text.length) {
+            resultHtml += wrapPlainWords(text.slice(cursor));
+        }
+
+        return resultHtml;
+    }
+
+    // 일반 텍스트 조각을 공백 기준으로 쪼개어 .word 로 래핑 (하이라이트 싱크용)
+    function wrapPlainWords(segment) {
+        if (!segment) return "";
+        const parts = segment.split(/(\s+)/); // 공백 보존 분리
+        return parts.map(p => {
+            if (!p || p.trim().length === 0) return p; // 공백은 그대로 반환
+            return `<span class="word">${p}</span>`;
+        }).join('');
+    }
+
+    // 과거형/진행형/복수형 변형을 유연하게 수용하는 정규식 생성기
+    function buildFlexibleRegex(phrase) {
+        const parts = phrase.trim().split(/\s+/);
+        if (parts.length === 1) {
+            const w = escapeRegExp(parts[0]);
+            const stem = w.endsWith('e') ? w.slice(0, -1) : w;
+            return new RegExp(`\\b(${w}|${stem}(?:ed|d|ing|s|es))\\b`, 'gi');
+        } else {
+            // 2단어 이상 숙어: 첫 단어(동사) 변형 허용
+            // e.g. "turn out to be" -> "turn(ed|s|ing)? out to be"
+            // e.g. "wipe out" -> "wipe(d|s|ing)? out"
+            const first = escapeRegExp(parts[0]);
+            const firstStem = first.endsWith('e') ? first.slice(0, -1) : first;
+            const rest = parts.slice(1).map(p => escapeRegExp(p)).join('\\s+');
+            return new RegExp(`\\b(${first}|${firstStem}(?:ed|d|ing|s)?)\\s+${rest}\\b`, 'gi');
+        }
+    }
+
+    function escapeRegExp(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     function escapeHtml(str) {
@@ -1014,16 +1046,16 @@
     }
 
     // -------------------------------------------------------------
-    // 🎈 풍선도움말 (Tooltip) & 🔊 원어민 단어 발음
+    // 🎈 풍선도움말 & 🔊 원어민 단어/숙어 즉시 발음
     // -------------------------------------------------------------
     function toggleHint(el, e) {
         e.stopPropagation();
 
         const meaning = el.getAttribute('data-meaning');
-        const wordToSpeak = el.getAttribute('data-speak') || el.textContent.replace(/[.,!?'"():;]/g, '');
+        const textToSpeak = el.getAttribute('data-speak') || el.textContent;
 
-        // 🔊 클릭 즉시 원어민 단어 발음 재생!
-        speakSingleWord(wordToSpeak);
+        // 🔊 숙어/단어 전체를 정확하게 발음!
+        speakPhrase(textToSpeak);
 
         if (activeTooltipTarget === el) {
             hideTooltip();
@@ -1054,14 +1086,13 @@
         tooltipBubble.style.top = `${top}px`;
     }
 
-    // 단어 전용 또렷한 원어민 발음 재생
-    function speakSingleWord(word) {
+    function speakPhrase(phrase) {
         if (!('speechSynthesis' in window)) return;
         window.speechSynthesis.cancel();
 
-        const utt = new SpeechSynthesisUtterance(word);
+        const utt = new SpeechSynthesisUtterance(phrase);
         utt.lang = 'en-US';
-        utt.rate = 0.88; // 단어 학습용으로 약간 차분하고 또렷하게
+        utt.rate = 0.88;
         utt.pitch = 1.0;
         window.speechSynthesis.speak(utt);
     }
