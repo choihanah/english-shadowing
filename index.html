@@ -280,9 +280,15 @@
             border-radius: 12px;
             border: 1px solid var(--border-color);
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .control-row {
+            display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.85rem;
         }
 
         .speed-control {
@@ -306,6 +312,18 @@
             background: var(--primary);
             color: #ffffff;
             border-color: var(--primary);
+        }
+
+        .voice-select {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.78rem;
+            color: var(--text-main);
+            max-width: 170px;
+            outline: none;
+            cursor: pointer;
         }
 
         .status-badge {
@@ -361,9 +379,9 @@
         }
 
         .sentence-text {
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             font-weight: 600;
-            line-height: 1.45;
+            line-height: 1.5;
             color: var(--text-main);
             word-break: keep-all;
         }
@@ -393,7 +411,7 @@
             font-style: normal;
             opacity: 0;
             transition: opacity 0.2s ease;
-            line-height: 1.4;
+            line-height: 1.45;
         }
 
         .translation-text.visible {
@@ -541,13 +559,22 @@
 
         <!-- 컨트롤 패널 -->
         <div class="control-panel">
-            <div class="speed-control">
-                <button class="speed-btn" onclick="setSpeed(0.5, event)">0.5x</button>
-                <button class="speed-btn" onclick="setSpeed(0.75, event)">0.75x</button>
-                <button class="speed-btn active" onclick="setSpeed(1.0, event)">1.0x</button>
-                <button class="speed-btn" onclick="setSpeed(1.2, event)">1.2x</button>
+            <div class="control-row">
+                <div class="speed-control">
+                    <span style="font-size:0.75rem; color:var(--text-sub); margin-right:2px;">속도</span>
+                    <button class="speed-btn" onclick="setSpeed(0.5, event)">0.5x</button>
+                    <button class="speed-btn" onclick="setSpeed(0.75, event)">0.75x</button>
+                    <button class="speed-btn active" onclick="setSpeed(1.0, event)">1.0x</button>
+                    <button class="speed-btn" onclick="setSpeed(1.2, event)">1.2x</button>
+                </div>
+                <div id="statusBadge" class="status-badge">대기 중</div>
             </div>
-            <div id="statusBadge" class="status-badge">대기 중</div>
+            <div class="control-row">
+                <span style="font-size:0.75rem; color:var(--text-sub);">🗣️ 목소리</span>
+                <select id="voiceSelect" class="voice-select" onchange="changeVoice(this.value)">
+                    <option value="">원어민 음성 로딩 중...</option>
+                </select>
+            </div>
         </div>
 
         <!-- 학습 카드 영역 -->
@@ -568,7 +595,7 @@
                 </div>
 
                 <!-- 답변 문장 -->
-                <div class="sentence-block">
+                <div class="sentence-block" id="answerBlock">
                     <span class="sentence-label">💡 Answer</span>
                     <div id="aSentence" class="sentence-text"></div>
                     <div class="translation-container">
@@ -611,6 +638,8 @@
     let currentSpeed = 1.0;
     let isTranslated = false;
     let isPlaying = false;
+    let selectedVoice = null;
+    let availableVoices = [];
 
     // DOM 요소
     const dashboardView = document.getElementById('dashboardView');
@@ -621,6 +650,8 @@
     const syncDot = document.getElementById('syncDot');
     const currentUnitBadge = document.getElementById('currentUnitBadge');
     const cardCategoryText = document.getElementById('cardCategoryText');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const answerBlock = document.getElementById('answerBlock');
 
     const qSentenceEl = document.getElementById('qSentence');
     const qTransEl = document.getElementById('qTrans');
@@ -635,7 +666,7 @@
     const playBtn = document.getElementById('playBtn');
 
     // -------------------------------------------------------------
-    // 2. Google Sheets JSONP 로더 (CORS 완전 해결, 로컬 file:// 완벽 지원)
+    // 2. Google Sheets JSONP 로더
     // -------------------------------------------------------------
     function loadSheetData(isManual = false) {
         if (isManual) {
@@ -645,13 +676,11 @@
             treeContainer.style.display = "none";
         }
 
-        // 기존 주입 스크립트 제거
         const old = document.getElementById('googleSheetScript');
         if (old) old.remove();
 
         const script = document.createElement('script');
         script.id = 'googleSheetScript';
-        // JSONP 응답 핸들러 지정 (handleSheetJson) + 캐시 방지 타임스탬프
         script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleSheetJson&_t=${Date.now()}`;
         
         script.onerror = () => {
@@ -667,7 +696,6 @@
         document.body.appendChild(script);
     }
 
-    // Google Sheets 응답 콜백 함수
     window.handleSheetJson = function(json) {
         try {
             if (!json || !json.table || !json.table.rows) {
@@ -677,13 +705,11 @@
             const rows = json.table.rows;
             hierarchicalData = {};
 
-            // 첫 번째 행은 헤더이므로 r=1부터 시작 (만약 헤더가 첫 행인 경우)
-            // 안전하게 첫 행이 헤더인지 체크
             let startRow = 0;
             if (rows.length > 0 && rows[0].c) {
                 const firstCol = rows[0].c[0] ? String(rows[0].c[0].v || "") : "";
                 if (firstCol.includes("대분류") || firstCol.includes("열")) {
-                    startRow = 1; // 헤더 건너뜀
+                    startRow = 1;
                 }
             }
 
@@ -696,8 +722,7 @@
                     return String(c[idx].v).trim();
                 };
 
-                // 6개 열: [대분류, 중분류, Q문장, Q번역, A문장, A번역]
-                const cat = getVal(0) || "중2 영어";
+                const cat = getVal(0) || "기본 단원";
                 const unit = getVal(1) || "Lesson 1";
                 const q = getVal(2);
                 const qTrans = getVal(3);
@@ -728,7 +753,6 @@
         }
     };
 
-    // 오프라인/비상용 Fallback 데이터
     function useFallbackData() {
         hierarchicalData = {
             "중2 영어 1학기": {
@@ -738,20 +762,6 @@
                         qTrans: "너 겨울이랑 여름 중에 어느 쪽을 더 좋아해?",
                         a: "I like winter better than summer.",
                         aTrans: "나는 여름보다 겨울을 더 좋아해."
-                    },
-                    {
-                        q: "Which do you like more, dogs or cats?",
-                        qTrans: "너는 개랑 고양이 중에 뭐가 더 좋아?",
-                        a: "I like dogs better than cats.",
-                        aTrans: "나는 고양이보다 개를 더 좋아해."
-                    }
-                ],
-                "Lesson 2. 의무와 조언 (You should)": [
-                    {
-                        q: "What should I do for my cold?",
-                        qTrans: "감기 걸렸을 땐 어떻게 해야 해?",
-                        a: "You should get some rest and drink warm water.",
-                        aTrans: "푹 쉬고 따뜻한 물을 마셔야 해."
                     }
                 ]
             }
@@ -807,7 +817,7 @@
     }
 
     // -------------------------------------------------------------
-    // 4. 화면 전환 제어
+    // 4. 화면 전환
     // -------------------------------------------------------------
     function openStudyView(cat, unit) {
         currentCategory = cat;
@@ -834,7 +844,7 @@
     }
 
     // -------------------------------------------------------------
-    // 5. 섀도잉 카드 렌더링 & 제어
+    // 5. 섀도잉 카드 렌더링
     // -------------------------------------------------------------
     function initCard() {
         stopAudio();
@@ -846,10 +856,19 @@
         const item = currentUnitItems[currentIndex];
 
         qSentenceEl.innerHTML = renderWords(item.q);
-        aSentenceEl.innerHTML = renderWords(item.a);
-
         qTransEl.textContent = item.qTrans;
-        aTransEl.textContent = item.aTrans;
+
+        // 답변이 비어있는 독백형 문장인 경우 처리
+        if (item.a && item.a.trim().length > 0) {
+            answerBlock.style.display = "flex";
+            aSentenceEl.innerHTML = renderWords(item.a);
+            aTransEl.textContent = item.aTrans;
+        } else {
+            answerBlock.style.display = "none";
+            aSentenceEl.innerHTML = "";
+            aTransEl.textContent = "";
+        }
+
         updateTranslationView();
 
         const total = currentUnitItems.length;
@@ -901,8 +920,73 @@
     }
 
     // -------------------------------------------------------------
-    // 6. 음성 재생 & 하이라이트 동기화
+    // 6. 고품질 활기찬 Voice 엔진 (Natural / Neural / Enhanced 우선)
     // -------------------------------------------------------------
+    function initVoices() {
+        if (!('speechSynthesis' in window)) return;
+
+        const all = window.speechSynthesis.getVoices();
+        if (!all || all.length === 0) return;
+
+        // 영어 음성만 필터링
+        availableVoices = all.filter(v => v.lang.startsWith('en'));
+
+        // 활기차고 자연스러운 순서대로 가중치 부여 정렬
+        availableVoices.sort((a, b) => {
+            const score = (v) => {
+                const name = v.name.toLowerCase();
+                if (name.includes('natural') && name.includes('jenny')) return 100; // 최고 활기찬 여성톤
+                if (name.includes('natural') && name.includes('aria')) return 95;  // 활기찬 아나운서톤
+                if (name.includes('natural') && name.includes('guy')) return 90;   // 자연스러운 남성톤
+                if (name.includes('neural')) return 85;
+                if (name.includes('natural')) return 80;
+                if (name.includes('google') && v.lang === 'en-US') return 75;      // 안드로이드 구글 고음질
+                if (name.includes('samantha') && name.includes('enhanced')) return 70; // 아이폰 고음질
+                if (name.includes('siri')) return 65;
+                if (name.includes('samantha')) return 60;
+                if (v.lang === 'en-US') return 50;
+                return 10;
+            };
+            return score(b) - score(a);
+        });
+
+        // 목소리 셀렉트 박스 채우기
+        voiceSelect.innerHTML = "";
+        availableVoices.forEach((v, idx) => {
+            const opt = document.createElement('option');
+            opt.value = v.name;
+            let label = v.name.replace(/Microsoft |Google /g, '').replace(/ - English \(United States\)/g, '');
+            if (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('neural')) {
+                label = `✨ ${label} (생생한 톤)`;
+            } else if (v.name.toLowerCase().includes('jenny') || v.name.toLowerCase().includes('aria')) {
+                label = `⚡ ${label} (활기찬 톤)`;
+            }
+            opt.textContent = label;
+            voiceSelect.appendChild(opt);
+        });
+
+        // 저장된 보이스 또는 가장 높은 점수의 보이스 선택
+        const saved = localStorage.getItem('shadowing_voice');
+        if (saved && availableVoices.some(v => v.name === saved)) {
+            selectedVoice = availableVoices.find(v => v.name === saved);
+            voiceSelect.value = saved;
+        } else if (availableVoices.length > 0) {
+            selectedVoice = availableVoices[0];
+            voiceSelect.value = selectedVoice.name;
+        }
+    }
+
+    function changeVoice(voiceName) {
+        selectedVoice = availableVoices.find(v => v.name === voiceName);
+        if (selectedVoice) {
+            localStorage.setItem('shadowing_voice', selectedVoice.name);
+        }
+        if (isPlaying) {
+            stopAudio();
+            startShadowing();
+        }
+    }
+
     function stopAudio() {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
@@ -927,16 +1011,20 @@
         const item = currentUnitItems[currentIndex];
         if (!item) return;
 
-        const fullText = `${item.q}.   ${item.a}.`;
+        // 질문 문장과 답변 문장 연결
+        const hasAnswer = (item.a && item.a.trim().length > 0);
+        const fullText = hasAnswer ? `${item.q}.    ${item.a}.` : `${item.q}.`;
+
         const utterance = new SpeechSynthesisUtterance(fullText);
         utterance.lang = 'en-US';
         utterance.rate = currentSpeed;
+        
+        // 활기찬 느낌을 주는 피치 (1.05~1.06)
+        utterance.pitch = 1.05;
 
-        const voices = window.speechSynthesis.getVoices();
-        const usVoice = voices.find(v => v.lang.startsWith('en-US') && !v.name.includes('Google')) ||
-                        voices.find(v => v.lang.startsWith('en-US')) ||
-                        voices.find(v => v.lang.startsWith('en'));
-        if (usVoice) utterance.voice = usVoice;
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
 
         const qWords = qSentenceEl.querySelectorAll('.word');
         const aWords = aSentenceEl.querySelectorAll('.word');
@@ -949,7 +1037,7 @@
 
         utterance.onboundary = (event) => {
             if (event.name === 'word') {
-                highlightWordByCharIndex(event.charIndex, qWords, aWords, item.q.length);
+                highlightWordByCharIndex(event.charIndex, qWords, aWords, item.q.length, hasAnswer);
             }
         };
 
@@ -974,10 +1062,10 @@
         window.speechSynthesis.speak(utterance);
     }
 
-    function highlightWordByCharIndex(charIdx, qWords, aWords, qLength) {
+    function highlightWordByCharIndex(charIdx, qWords, aWords, qLength, hasAnswer) {
         clearHighlights();
 
-        if (charIdx <= qLength) {
+        if (charIdx <= qLength || !hasAnswer) {
             let accumulated = 0;
             for (let i = 0; i < qWords.length; i++) {
                 accumulated += qWords[i].textContent.length + 1;
@@ -987,7 +1075,7 @@
                 }
             }
         } else {
-            const adjustedIdx = charIdx - qLength - 3;
+            const adjustedIdx = charIdx - qLength - 4;
             let accumulated = 0;
             for (let i = 0; i < aWords.length; i++) {
                 accumulated += aWords[i].textContent.length + 1;
@@ -1004,7 +1092,7 @@
     }
 
     // -------------------------------------------------------------
-    // 7. 모바일 터치 스와이프 제스처
+    // 7. 모바일 터치 스와이프
     // -------------------------------------------------------------
     let touchStartX = 0;
     let touchEndX = 0;
@@ -1030,13 +1118,13 @@
         }
     }
 
+    // 브라우저 보이스 초기화
     if ('speechSynthesis' in window) {
-        window.speechSynthesis.onvoiceschanged = () => {
-            window.speechSynthesis.getVoices();
-        };
+        window.speechSynthesis.onvoiceschanged = initVoices;
+        initVoices();
     }
 
-    // 실행
+    // 앱 시작 시 구글 시트 데이터 로드
     loadSheetData();
 </script>
 
