@@ -1086,15 +1086,63 @@
         tooltipBubble.style.top = `${top}px`;
     }
 
+    // 🔊 브라우저 영어 원어민 음성 최적화 및 멈춤 방지 엔진
+    let cachedEnglishVoice = null;
+    window._activeUtterance = null;
+
+    function getBestEnglishVoice() {
+        if (cachedEnglishVoice) return cachedEnglishVoice;
+        if (!('speechSynthesis' in window)) return null;
+
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices || voices.length === 0) return null;
+
+        // 영어 음성 필터링 (en-US 우선)
+        const enVoices = voices.filter(v => v.lang && (v.lang === 'en-US' || v.lang.startsWith('en')));
+        if (enVoices.length === 0) return voices[0];
+
+        // 1. 고품질 Natural / Google 미국 영어
+        let best = enVoices.find(v => v.name.includes('Natural') || v.name.includes('Online'));
+        if (!best) best = enVoices.find(v => v.name.includes('Google') && v.lang.includes('en'));
+        if (!best) best = enVoices.find(v => /Jenny|Guy|Aria|Zira|David/i.test(v.name));
+        if (!best) best = enVoices.find(v => v.lang === 'en-US');
+        if (!best) best = enVoices[0];
+
+        cachedEnglishVoice = best;
+        return cachedEnglishVoice;
+    }
+
+    if ('speechSynthesis' in window) {
+        getBestEnglishVoice();
+        window.speechSynthesis.onvoiceschanged = () => {
+            cachedEnglishVoice = null;
+            getBestEnglishVoice();
+        };
+    }
+
     function speakPhrase(phrase) {
         if (!('speechSynthesis' in window)) return;
+        
         window.speechSynthesis.cancel();
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+        }
 
         const utt = new SpeechSynthesisUtterance(phrase);
-        utt.lang = 'en-US';
-        utt.rate = 0.88;
+        const voice = getBestEnglishVoice();
+        if (voice) {
+            utt.voice = voice;
+            utt.lang = voice.lang || 'en-US';
+        } else {
+            utt.lang = 'en-US';
+        }
+        utt.rate = 0.9;
         utt.pitch = 1.0;
-        window.speechSynthesis.speak(utt);
+
+        window._activeUtterance = utt;
+        setTimeout(() => {
+            window.speechSynthesis.speak(utt);
+        }, 30);
     }
 
     function hideTooltip() {
@@ -1151,6 +1199,7 @@
             window.speechSynthesis.cancel();
         }
         isPlaying = false;
+        window._activeUtterance = null;
         clearHighlights();
     }
 
@@ -1171,13 +1220,33 @@
         const item = currentUnitItems[currentIndex];
         if (!item) return;
 
+        // 크롬 오디오 대기열 초기화 및 일시정지 해제
+        window.speechSynthesis.cancel();
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+        }
+
         const hasAnswer = (item.a && item.a.trim().length > 0);
-        const fullText = hasAnswer ? `${item.q}.    ${item.a}.` : `${item.q}.`;
+        const qClean = item.q.trim();
+        const aClean = hasAnswer ? item.a.trim() : "";
+        const fullText = hasAnswer ? `${qClean}    ${aClean}` : qClean;
 
         const utterance = new SpeechSynthesisUtterance(fullText);
-        utterance.lang = 'en-US';
+        
+        // 원어민 영어 음성 필수 지정
+        const voice = getBestEnglishVoice();
+        if (voice) {
+            utterance.voice = voice;
+            utterance.lang = voice.lang || 'en-US';
+        } else {
+            utterance.lang = 'en-US';
+        }
+
         utterance.rate = currentSpeed;
         utterance.pitch = 1.0;
+
+        // GC(가비지 컬렉터)에 의해 중간에 소리가 끊기지 않도록 글로벌 보관
+        window._activeUtterance = utterance;
 
         const qWords = qSentenceEl.querySelectorAll('.word');
         const aWords = aSentenceEl.querySelectorAll('.word');
@@ -1190,12 +1259,13 @@
 
         utterance.onboundary = (event) => {
             if (event.name === 'word') {
-                highlightWordByCharIndex(event.charIndex, qWords, aWords, item.q.length, hasAnswer);
+                highlightWordByCharIndex(event.charIndex, qWords, aWords, qClean.length, hasAnswer);
             }
         };
 
         utterance.onend = () => {
             isPlaying = false;
+            window._activeUtterance = null;
             clearHighlights();
             playBtn.innerHTML = "▶ 다시 듣기";
             statusBadge.textContent = "🎤 내 차례! 따라 말해보세요";
@@ -1205,14 +1275,19 @@
             }, 3500);
         };
 
-        utterance.onerror = () => {
+        utterance.onerror = (err) => {
+            console.error("TTS 재생 에러:", err);
             isPlaying = false;
+            window._activeUtterance = null;
             clearHighlights();
             playBtn.innerHTML = "▶ 듣고 따라하기";
             statusBadge.textContent = "재생 오류 발생";
         };
 
-        window.speechSynthesis.speak(utterance);
+        // cancel() 후 40ms 여유를 두어 브라우저 오디오 채널이 안정적으로 열리도록 실행
+        setTimeout(() => {
+            window.speechSynthesis.speak(utterance);
+        }, 40);
     }
 
     function highlightWordByCharIndex(charIdx, qWords, aWords, qLength, hasAnswer) {
