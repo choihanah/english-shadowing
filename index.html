@@ -273,7 +273,7 @@
             text-overflow: ellipsis;
         }
 
-        /* 컨트롤 패널 (심플하고 컴팩트) */
+        /* 컨트롤 패널 */
         .control-panel {
             background: #f8fafc;
             padding: 10px 14px;
@@ -343,6 +343,15 @@
             padding-bottom: 12px;
         }
 
+        .hint-guide-badge {
+            font-size: 0.75rem;
+            color: #6366f1;
+            background: #eef2ff;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
         .sentence-block {
             display: flex;
             flex-direction: column;
@@ -363,7 +372,7 @@
         .sentence-text {
             font-size: 1.25rem;
             font-weight: 600;
-            line-height: 1.5;
+            line-height: 1.55;
             color: var(--text-main);
             word-break: keep-all;
         }
@@ -371,15 +380,29 @@
         /* 하이라이트 효과 */
         .word {
             display: inline-block;
-            padding: 2px 4px;
+            padding: 2px 3px;
             border-radius: 4px;
             transition: all 0.12s ease;
+            position: relative;
         }
 
         .word.highlight {
             background-color: var(--highlight-bg);
             border-bottom: 2.5px solid var(--highlight-border);
             transform: scale(1.04);
+        }
+
+        /* 💡 단어/수식어 힌트 스타일 */
+        .has-hint {
+            border-bottom: 2px dotted #4f46e5;
+            cursor: pointer;
+            color: #3730a3;
+            transition: all 0.2s;
+        }
+
+        .has-hint:active {
+            background-color: #e0e7ff;
+            border-radius: 4px;
         }
 
         /* 번역문 */
@@ -469,6 +492,43 @@
             font-weight: 700;
         }
 
+        /* ================= 🎈 풍선도움말 (Tooltip Popup) ================= */
+        .tooltip-bubble {
+            position: fixed;
+            background: #1e1b4b;
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1.4;
+            box-shadow: 0 10px 25px -3px rgba(0,0,0,0.3);
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            max-width: 260px;
+            text-align: center;
+        }
+
+        .tooltip-bubble.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 말풍선 꼬리 */
+        .tooltip-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: #1e1b4b transparent transparent transparent;
+        }
+
         /* 로딩 스피너 */
         .loading-box {
             display: flex;
@@ -514,7 +574,7 @@
     <main id="dashboardView" class="view-section">
         <div class="banner-card">
             <h2>오늘의 섀도잉 학습</h2>
-            <p>공부할 단원(패턴)을 선택하세요. 원어민 발음을 듣고 말해보며 패턴을 익힙니다.</p>
+            <p>공부할 단원(패턴)을 선택하세요. 점선 단어를 터치하면 뜻이 풍선도움말로 뜹니다!</p>
             <div class="sync-info">
                 <span class="sync-dot" id="syncDot"></span>
                 <span id="syncStatus">구글 시트 연결 중...</span>
@@ -526,7 +586,6 @@
             <p>구글 시트에서 최신 목차를 불러오는 중입니다...</p>
         </div>
 
-        <!-- 계층형 목차 트리 -->
         <div id="treeContainer" class="tree-container" style="display: none;"></div>
     </main>
 
@@ -539,7 +598,7 @@
             <div id="currentUnitBadge" class="current-unit-badge">Lesson 1</div>
         </div>
 
-        <!-- 컨트롤 패널 (심플 깔끔 복원) -->
+        <!-- 컨트롤 패널 -->
         <div class="control-panel">
             <div class="speed-control">
                 <span style="font-size:0.78rem; font-weight:600; color:var(--text-sub); margin-right:4px;">속도</span>
@@ -556,6 +615,7 @@
             <div class="card" id="studyCard">
                 <div class="card-header">
                     <span id="cardCounter">1 / 2</span>
+                    <span id="hintGuideBadge" class="hint-guide-badge" style="display:none;">💡 단어 탭: 뜻 보기</span>
                     <span id="cardCategoryText">중2 1학기</span>
                 </div>
 
@@ -598,6 +658,9 @@
     </main>
 </div>
 
+<!-- 🎈 말풍선 툴팁 엘리먼트 -->
+<div id="tooltipBubble" class="tooltip-bubble"></div>
+
 <script>
     // -------------------------------------------------------------
     // 1. 설정 및 상태 변수
@@ -612,6 +675,7 @@
     let currentSpeed = 1.0;
     let isTranslated = false;
     let isPlaying = false;
+    let activeTooltipTarget = null;
 
     // DOM 요소
     const dashboardView = document.getElementById('dashboardView');
@@ -623,6 +687,8 @@
     const currentUnitBadge = document.getElementById('currentUnitBadge');
     const cardCategoryText = document.getElementById('cardCategoryText');
     const answerBlock = document.getElementById('answerBlock');
+    const hintGuideBadge = document.getElementById('hintGuideBadge');
+    const tooltipBubble = document.getElementById('tooltipBubble');
 
     const qSentenceEl = document.getElementById('qSentence');
     const qTransEl = document.getElementById('qTrans');
@@ -637,7 +703,7 @@
     const playBtn = document.getElementById('playBtn');
 
     // -------------------------------------------------------------
-    // 2. Google Sheets JSONP 로더
+    // 2. Google Sheets JSONP 로더 (G열: 단어 힌트 추가 파싱)
     // -------------------------------------------------------------
     function loadSheetData(isManual = false) {
         if (isManual) {
@@ -693,19 +759,23 @@
                     return String(c[idx].v).trim();
                 };
 
+                // A~F열 + G열(단어·표현 힌트)
                 const cat = getVal(0) || "기본 단원";
                 const unit = getVal(1) || "Lesson 1";
                 const q = getVal(2);
                 const qTrans = getVal(3);
                 const a = getVal(4);
                 const aTrans = getVal(5);
+                const rawHints = getVal(6); // G열
 
                 if (!q) continue;
+
+                const hints = parseHints(rawHints);
 
                 if (!hierarchicalData[cat]) hierarchicalData[cat] = {};
                 if (!hierarchicalData[cat][unit]) hierarchicalData[cat][unit] = [];
 
-                hierarchicalData[cat][unit].push({ q, qTrans, a, aTrans });
+                hierarchicalData[cat][unit].push({ q, qTrans, a, aTrans, hints });
             }
 
             renderDashboard();
@@ -724,6 +794,27 @@
         }
     };
 
+    // 힌트 텍스트 파싱기: "turn out to be: ~로 드러나다, wipe out = 전멸시키다" 등 유연 처리
+    function parseHints(raw) {
+        const hintMap = {};
+        if (!raw) return hintMap;
+
+        // 줄바꿈, 쉼표, 슬래시, 세미콜론 등으로 항목 분리
+        const items = raw.split(/[\r\n,;/]+/).map(s => s.trim()).filter(Boolean);
+        items.forEach(item => {
+            // "단어: 뜻" 또는 "단어 = 뜻" 분리
+            const match = item.match(/^(.+?)\s*[:=]\s*(.+)$/);
+            if (match) {
+                const phrase = match[1].trim().toLowerCase();
+                const meaning = match[2].trim();
+                if (phrase && meaning) {
+                    hintMap[phrase] = meaning;
+                }
+            }
+        });
+        return hintMap;
+    }
+
     function useFallbackData() {
         hierarchicalData = {
             "중2 영어 1학기": {
@@ -732,7 +823,8 @@
                         q: "Which do you like more, winter or summer?",
                         qTrans: "너 겨울이랑 여름 중에 어느 쪽을 더 좋아해?",
                         a: "I like winter better than summer.",
-                        aTrans: "나는 여름보다 겨울을 더 좋아해."
+                        aTrans: "나는 여름보다 겨울을 더 좋아해.",
+                        hints: { "which": "어느 쪽, 어느 것", "better": "더 좋은, 더 많이" }
                     }
                 ]
             }
@@ -808,6 +900,7 @@
     }
 
     function backToDashboard() {
+        hideTooltip();
         stopAudio();
         studyView.style.display = "none";
         dashboardView.style.display = "flex";
@@ -815,9 +908,10 @@
     }
 
     // -------------------------------------------------------------
-    // 5. 섀도잉 카드 렌더링
+    // 5. 섀도잉 카드 렌더링 & 단어 힌트 밑줄 매핑
     // -------------------------------------------------------------
     function initCard() {
+        hideTooltip();
         stopAudio();
         statusBadge.textContent = "대기 중";
         playBtn.innerHTML = "▶ 듣고 따라하기";
@@ -825,13 +919,17 @@
         if (!currentUnitItems || currentUnitItems.length === 0) return;
 
         const item = currentUnitItems[currentIndex];
+        const hints = item.hints || {};
 
-        qSentenceEl.innerHTML = renderWords(item.q);
+        const hasHints = Object.keys(hints).length > 0;
+        hintGuideBadge.style.display = hasHints ? "inline-block" : "none";
+
+        qSentenceEl.innerHTML = renderSentenceWithHints(item.q, hints);
         qTransEl.textContent = item.qTrans;
 
         if (item.a && item.a.trim().length > 0) {
             answerBlock.style.display = "flex";
-            aSentenceEl.innerHTML = renderWords(item.a);
+            aSentenceEl.innerHTML = renderSentenceWithHints(item.a, hints);
             aTransEl.textContent = item.aTrans;
         } else {
             answerBlock.style.display = "none";
@@ -849,11 +947,94 @@
         nextBtn.disabled = (currentIndex === total - 1);
     }
 
-    function renderWords(text) {
+    // 단어별 렌더링 + 힌트(숙어/단어) 자동 매칭
+    function renderSentenceWithHints(text, hints) {
         if (!text) return "";
-        return text.split(' ').map(word => `<span class="word">${word}</span>`).join(' ');
+        const words = text.split(' ');
+
+        return words.map(w => {
+            const cleanWord = w.replace(/[.,!?'"():;]/g, '').toLowerCase();
+
+            // 1) 단일 단어 일치 체크
+            let foundMeaning = hints[cleanWord] || null;
+
+            // 2) 숙어(2단어 이상) 매칭 지원
+            if (!foundMeaning) {
+                for (const phrase in hints) {
+                    if (phrase.includes(' ') && text.toLowerCase().includes(phrase)) {
+                        const phraseWords = phrase.split(' ');
+                        if (phraseWords.includes(cleanWord)) {
+                            foundMeaning = `${phrase} : ${hints[phrase]}`;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (foundMeaning) {
+                return `<span class="word has-hint" onclick="toggleHint(this, event)" data-meaning="${escapeHtml(foundMeaning)}">${w}</span>`;
+            } else {
+                return `<span class="word">${w}</span>`;
+            }
+        }).join(' ');
     }
 
+    function escapeHtml(str) {
+        return str.replace(/"/g, '&quot;');
+    }
+
+    // -------------------------------------------------------------
+    // 🎈 풍선도움말 (Tooltip) 팝업 동작
+    // -------------------------------------------------------------
+    function toggleHint(el, e) {
+        e.stopPropagation();
+
+        if (activeTooltipTarget === el) {
+            hideTooltip();
+            return;
+        }
+
+        const meaning = el.getAttribute('data-meaning');
+        if (!meaning) return;
+
+        activeTooltipTarget = el;
+        tooltipBubble.textContent = `💡 ${meaning}`;
+        tooltipBubble.classList.add('show');
+
+        // 요소 위치 계산
+        const rect = el.getBoundingClientRect();
+        const tooltipWidth = tooltipBubble.offsetWidth;
+        const tooltipHeight = tooltipBubble.offsetHeight;
+
+        let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+        let top = rect.top - tooltipHeight - 10;
+
+        // 좌우 화면 벗어남 방지
+        if (left < 10) left = 10;
+        if (left + tooltipWidth > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipWidth - 10;
+        }
+
+        // 상단 화면 벗어남 방지
+        if (top < 10) {
+            top = rect.bottom + 10;
+        }
+
+        tooltipBubble.style.left = `${left}px`;
+        tooltipBubble.style.top = `${top}px`;
+    }
+
+    function hideTooltip() {
+        tooltipBubble.classList.remove('show');
+        activeTooltipTarget = null;
+    }
+
+    // 화면 어디든 터치하면 말풍선 닫기
+    document.addEventListener('click', hideTooltip);
+
+    // -------------------------------------------------------------
+    // 6. 기타 제어 및 네비게이션
+    // -------------------------------------------------------------
     function toggleTranslation() {
         isTranslated = !isTranslated;
         updateTranslationView();
@@ -881,6 +1062,7 @@
     }
 
     function movePage(dir) {
+        hideTooltip();
         const newIdx = currentIndex + dir;
         if (newIdx < 0 || newIdx >= currentUnitItems.length) return;
         currentIndex = newIdx;
@@ -890,7 +1072,7 @@
     }
 
     // -------------------------------------------------------------
-    // 6. 깔끔한 표준 음성 엔진 (언어 설정: en-US 기본 표준)
+    // 7. Web Speech API 음성 재생 및 하이라이트 동기화
     // -------------------------------------------------------------
     function stopAudio() {
         if ('speechSynthesis' in window) {
@@ -901,6 +1083,7 @@
     }
 
     function startShadowing() {
+        hideTooltip();
         if (isPlaying) {
             stopAudio();
             statusBadge.textContent = "재생 중지됨";
@@ -990,7 +1173,7 @@
     }
 
     // -------------------------------------------------------------
-    // 7. 모바일 터치 스와이프
+    // 8. 모바일 터치 스와이프
     // -------------------------------------------------------------
     let touchStartX = 0;
     let touchEndX = 0;
