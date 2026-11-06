@@ -1,254 +1,1044 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pattern Shadowing Drill</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <style>
-    .word { display: inline-block; transition: all 0.15s ease; padding: 2px 4px; border-radius: 6px; }
-    .highlight-q { background-color: #fef08a; color: #854d0e; transform: scale(1.08); font-weight: 700; }
-    .highlight-a { background-color: #bae6fd; color: #0369a1; transform: scale(1.08); font-weight: 700; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스마트 영어 섀도잉 학습</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eef2ff;
+            --secondary: #0ea5e9;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border-color: #e2e8f0;
+            --highlight-bg: #fef08a;
+            --highlight-border: #eab308;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 640px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            box-shadow: 0 0 25px rgba(0,0,0,0.04);
+            position: relative;
+        }
+
+        /* 공통 헤더 */
+        header.app-header {
+            padding: 16px 20px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-title-box h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-title-box p {
+            font-size: 0.78rem;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: #f1f5f9;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:active {
+            background: #e2e8f0;
+            transform: scale(0.97);
+        }
+
+        /* 뷰 전환 컨테이너 */
+        .view-section {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ================= 1. 목차 대시보드 뷰 ================= */
+        #dashboardView {
+            gap: 20px;
+        }
+
+        .banner-card {
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2);
+        }
+
+        .banner-card h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .banner-card p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .sync-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.18);
+            padding: 4px 10px;
+            border-radius: 20px;
+            align-self: flex-start;
+            margin-top: 4px;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #34d399;
+        }
+
+        .tree-container {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .category-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .category-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-left: 4px;
+        }
+
+        .unit-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .unit-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        .unit-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(79, 70, 229, 0.08);
+        }
+
+        .unit-card:active {
+            transform: scale(0.98);
+        }
+
+        .unit-info h3 {
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .unit-info span {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+        }
+
+        .start-badge {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+
+        /* ================= 2. 섀도잉 학습 카드 뷰 ================= */
+        #studyView {
+            display: none;
+            gap: 16px;
+        }
+
+        .study-nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+
+        .current-unit-badge {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 12px;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 컨트롤 패널 */
+        .control-panel {
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .speed-control {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .speed-btn {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-sub);
+        }
+
+        .speed-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* 카드 메인 */
+        .card-container {
+            position: relative;
+            touch-action: pan-y;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+            padding: 24px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+            color: var(--text-sub);
+            font-weight: 600;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .sentence-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sentence-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sentence-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            line-height: 1.45;
+            color: var(--text-main);
+            word-break: keep-all;
+        }
+
+        /* 하이라이트 효과 */
+        .word {
+            display: inline-block;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: all 0.12s ease;
+        }
+
+        .word.highlight {
+            background-color: var(--highlight-bg);
+            border-bottom: 2.5px solid var(--highlight-border);
+            transform: scale(1.04);
+        }
+
+        /* 번역문 */
+        .translation-container {
+            min-height: 22px;
+        }
+
+        .translation-text {
+            font-size: 0.95rem;
+            color: var(--text-sub);
+            font-style: normal;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            line-height: 1.4;
+        }
+
+        .translation-text.visible {
+            opacity: 1;
+        }
+
+        /* 조작 버튼 */
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.25);
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        /* 페이지네이션 */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-top: 10px;
+        }
+
+        .page-btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .page-indicator {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            font-weight: 700;
+        }
+
+        /* 로딩 스피너 */
+        .loading-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            gap: 12px;
+            color: var(--text-sub);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-<body class="bg-slate-100 flex flex-col items-center justify-center min-h-screen p-4 font-sans select-none">
+<body>
 
-  <!-- 시작 전 화면 (아이폰 오디오 권한 획득용) -->
-  <div id="start-overlay" class="fixed inset-0 bg-indigo-600 flex flex-col items-center justify-center text-white z-50 p-6 text-center">
-    <h1 class="text-3xl font-extrabold mb-4">중2 영어 패턴 마스터</h1>
-    <p class="text-indigo-200 mb-8 text-lg">듣고 큰 소리로 따라 읽어보세요!</p>
-    <button onclick="startApp()" class="bg-white text-indigo-600 text-xl font-bold px-8 py-4 rounded-full shadow-2xl active:scale-95 transition">
-      학습 시작하기 🚀
-    </button>
-  </div>
+<div class="app-container">
+    <!-- 상단 헤더 -->
+    <header class="app-header">
+        <div class="header-title-box">
+            <h1>🎧 영어 패턴 섀도잉</h1>
+            <p id="headerSubText">구글 시트 실시간 연동</p>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="loadSheetData(true)">
+                <span>↻</span> 새로고침
+            </button>
+        </div>
+    </header>
 
-  <!-- 메인 학습 카드 -->
-  <div class="w-full max-w-md bg-white rounded-3xl shadow-xl p-6 flex flex-col justify-between min-h-[520px]">
-    <!-- 상단 진행률 -->
-    <div class="flex justify-between items-center text-sm font-semibold text-slate-400 mb-4">
-      <span id="progress-text">1 / 1</span>
-      <span id="status-tag" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs">준비</span>
-    </div>
+    <!-- [View 1] 목차 대시보드 뷰 -->
+    <main id="dashboardView" class="view-section">
+        <div class="banner-card">
+            <h2>오늘의 섀도잉 학습</h2>
+            <p>공부할 단원(패턴)을 선택하세요. 원어민 발음을 듣고 말해보며 패턴을 익힙니다.</p>
+            <div class="sync-info">
+                <span class="sync-dot" id="syncDot"></span>
+                <span id="syncStatus">구글 시트 연결 중...</span>
+            </div>
+        </div>
 
-    <!-- 문장 표시 영역 -->
-    <div class="flex-1 flex flex-col justify-center space-y-6">
-      <!-- 질문 카드 -->
-      <div id="q-card" class="p-5 rounded-2xl bg-amber-50/60 border border-amber-100">
-        <span class="text-xs font-bold text-amber-500 uppercase tracking-wide block mb-1">Question</span>
-        <div id="q-text" class="text-2xl font-semibold text-slate-800 leading-relaxed"></div>
-      </div>
+        <div id="treeLoading" class="loading-box">
+            <div class="spinner"></div>
+            <p>구글 시트에서 최신 목차를 불러오는 중입니다...</p>
+        </div>
 
-      <!-- 답변 카드 -->
-      <div id="a-card" class="p-5 rounded-2xl bg-sky-50/60 border border-sky-100 opacity-40 transition-opacity duration-300">
-        <span class="text-xs font-bold text-sky-500 uppercase tracking-wide block mb-1">Answer</span>
-        <div id="a-text" class="text-2xl font-semibold text-slate-800 leading-relaxed"></div>
-      </div>
-    </div>
+        <!-- 계층형 목차 트리 -->
+        <div id="treeContainer" class="tree-container" style="display: none;"></div>
+    </main>
 
-    <!-- 하단 따라 읽기 타이머 바 & 컨트롤 -->
-    <div class="mt-6 space-y-4">
-      <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-        <div id="timer-bar" class="bg-emerald-400 h-full w-0 transition-all duration-100 ease-linear"></div>
-      </div>
-      <div class="flex justify-between items-center">
-        <button onclick="prevSentence()" class="text-slate-400 font-bold px-4 py-2 hover:text-slate-600">이전</button>
-        <button id="pause-btn" onclick="togglePlay()" class="bg-slate-800 text-white font-semibold px-6 py-2.5 rounded-full text-sm">일시정지</button>
-        <button onclick="nextSentence()" class="text-slate-400 font-bold px-4 py-2 hover:text-slate-600">다음</button>
-      </div>
-    </div>
-  </div>
+    <!-- [View 2] 섀도잉 학습 카드 뷰 -->
+    <main id="studyView" class="view-section">
+        <div class="study-nav-bar">
+            <button class="back-btn" onclick="backToDashboard()">
+                ◀ 전체 목차로
+            </button>
+            <div id="currentUnitBadge" class="current-unit-badge">Lesson 1</div>
+        </div>
 
-  <script>
+        <!-- 컨트롤 패널 -->
+        <div class="control-panel">
+            <div class="speed-control">
+                <button class="speed-btn" onclick="setSpeed(0.5, event)">0.5x</button>
+                <button class="speed-btn" onclick="setSpeed(0.75, event)">0.75x</button>
+                <button class="speed-btn active" onclick="setSpeed(1.0, event)">1.0x</button>
+                <button class="speed-btn" onclick="setSpeed(1.2, event)">1.2x</button>
+            </div>
+            <div id="statusBadge" class="status-badge">대기 중</div>
+        </div>
+
+        <!-- 학습 카드 영역 -->
+        <div class="card-container" id="cardContainer">
+            <div class="card" id="studyCard">
+                <div class="card-header">
+                    <span id="cardCounter">1 / 2</span>
+                    <span id="cardCategoryText">중2 1학기</span>
+                </div>
+
+                <!-- 질문 문장 -->
+                <div class="sentence-block">
+                    <span class="sentence-label">💬 Question</span>
+                    <div id="qSentence" class="sentence-text"></div>
+                    <div class="translation-container">
+                        <div id="qTrans" class="translation-text"></div>
+                    </div>
+                </div>
+
+                <!-- 답변 문장 -->
+                <div class="sentence-block">
+                    <span class="sentence-label">💡 Answer</span>
+                    <div id="aSentence" class="sentence-text"></div>
+                    <div class="translation-container">
+                        <div id="aTrans" class="translation-text"></div>
+                    </div>
+                </div>
+
+                <!-- 조작 버튼 -->
+                <div class="action-row">
+                    <button class="btn btn-secondary" onclick="toggleTranslation()">
+                        <span id="transBtnText">해석 보기</span>
+                    </button>
+                    <button class="btn btn-primary" id="playBtn" onclick="startShadowing()">
+                        ▶ 듣고 따라하기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 하단 네비게이션 -->
+        <div class="pagination">
+            <button class="page-btn" id="prevBtn" onclick="movePage(-1)">이전</button>
+            <span class="page-indicator" id="pageIndicator">1 / 2</span>
+            <button class="page-btn" id="nextBtn" onclick="movePage(1)">다음</button>
+        </div>
+    </main>
+</div>
+
+<script>
     // -------------------------------------------------------------
-    // [설정] 차장님의 구글 시트 "웹에 게시" CSV URL을 아래에 넣으시면 됩니다.
-    // 비어있으면 아래 기본 테스트 데이터로 작동합니다.
+    // 1. 설정 및 상태 변수
     // -------------------------------------------------------------
-    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS652SvBXaM9QvpiC-EMZI91hGOEWH4Vh5XDQgx_ZgA3wcIO0DD2FBgb6Vf0zlcCY6K523LmewXc2Bf/pub?gid=0&single=true&output=csv"; 
+    const SHEET_ID = '1N6_DK6OGBIKhPaKU_8db0iNB49VjauoOHovD9bq-cfc';
 
-    let drillData = [
-      { q: "Which do you like more, winter or summer?", a: "I like winter better than summer." },
-      { q: "Which do you like more, dogs or cats?", a: "I like dogs better than cats." },
-      { q: "Which do you like more, pizza or burgers?", a: "I like pizza better than burgers." },
-      { q: "Which do you like more, math or English?", a: "I like English better than math." },
-      { q: "Which do you like more, apples or bananas?", a: "I like apples better than bananas." }
-    ];
-
+    let hierarchicalData = {};
+    let currentCategory = "";
+    let currentUnit = "";
+    let currentUnitItems = [];
     let currentIndex = 0;
-    let isPaused = false;
-    let synth = window.speechSynthesis;
-    let englishVoice = null;
+    let currentSpeed = 1.0;
+    let isTranslated = false;
+    let isPlaying = false;
 
-    // 음성 로드
-    function loadVoices() {
-      const voices = synth.getVoices();
-      englishVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Samantha') || v.name.includes('Natural') || v.name.includes('Google'))) 
-                  || voices.find(v => v.lang.startsWith('en'));
-    }
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = loadVoices;
-    }
+    // DOM 요소
+    const dashboardView = document.getElementById('dashboardView');
+    const studyView = document.getElementById('studyView');
+    const treeContainer = document.getElementById('treeContainer');
+    const treeLoading = document.getElementById('treeLoading');
+    const syncStatus = document.getElementById('syncStatus');
+    const syncDot = document.getElementById('syncDot');
+    const currentUnitBadge = document.getElementById('currentUnitBadge');
+    const cardCategoryText = document.getElementById('cardCategoryText');
 
-// 구글 시트 CSV 파싱 (PapaParse 적용)
-async function fetchSheetData() {
-  if (!GOOGLE_SHEET_CSV_URL) return;
-  try {
-    // 캐시 방지를 위해 타임스탬프 쿼리 부착
-    const cacheBusterUrl = GOOGLE_SHEET_CSV_URL + '&t=' + Date.now();
-    const res = await fetch(cacheBusterUrl);
-    const csvText = await res.text();
+    const qSentenceEl = document.getElementById('qSentence');
+    const qTransEl = document.getElementById('qTrans');
+    const aSentenceEl = document.getElementById('aSentence');
+    const aTransEl = document.getElementById('aTrans');
+    const cardCounterEl = document.getElementById('cardCounter');
+    const pageIndicatorEl = document.getElementById('pageIndicator');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const transBtnText = document.getElementById('transBtnText');
+    const statusBadge = document.getElementById('statusBadge');
+    const playBtn = document.getElementById('playBtn');
 
-    const parsed = Papa.parse(csvText, {
-      skipEmptyLines: true
-    });
+    // -------------------------------------------------------------
+    // 2. Google Sheets JSONP 로더 (CORS 완전 해결, 로컬 file:// 완벽 지원)
+    // -------------------------------------------------------------
+    function loadSheetData(isManual = false) {
+        if (isManual) {
+            syncStatus.textContent = "동기화 중...";
+            syncDot.style.background = "#facc15";
+            treeLoading.style.display = "flex";
+            treeContainer.style.display = "none";
+        }
 
-    // 1행이 헤더(제목)인지 확인하고 데이터 매핑
-    let rows = parsed.data;
-    if (rows.length > 0) {
-      // 1행 첫 칸에 Q나 질문, Question 등의 단어가 있으면 헤더로 보고 건너뜁니다
-      const firstCell = rows[0][0] ? rows[0][0].toLowerCase() : '';
-      if (firstCell.includes('question') || firstCell.includes('질문') || firstCell.includes('q')) {
-        rows = rows.slice(1);
-      }
+        // 기존 주입 스크립트 제거
+        const old = document.getElementById('googleSheetScript');
+        if (old) old.remove();
 
-      const formatted = rows
-        .filter(r => r[0] && r[1]) // A열, B열 둘 다 내용이 있는 행만 추출
-        .map(r => ({
-          q: r[0].trim(),
-          a: r[1].trim()
-        }));
-
-      if (formatted.length > 0) {
-        drillData = formatted;
-        console.log(`구글 시트에서 총 ${drillData.length}개 문장을 성공적으로 불러왔습니다.`);
-      }
-    }
-  } catch (err) {
-    console.error("구글 시트 로드 실패:", err);
-  }
-}
-
-    async function startApp() {
-      document.getElementById('start-overlay').style.display = 'none';
-      loadVoices();
-      await fetchSheetData();
-      renderCard();
-      runDrillCycle();
-    }
-
-    function renderCard() {
-      const item = drillData[currentIndex];
-      document.getElementById('progress-text').innerText = `${currentIndex + 1} / ${drillData.length}`;
-      
-      // 단어 span으로 쪼개어 가라오케 준비
-      document.getElementById('q-text').innerHTML = item.q.split(' ').map((w, i) => `<span class="word" id="q-word-${i}">${w}</span>`).join(' ');
-      document.getElementById('a-text').innerHTML = item.a.split(' ').map((w, i) => `<span class="word" id="a-word-${i}">${w}</span>`).join(' ');
-      
-      document.getElementById('a-card').classList.add('opacity-40');
-      document.getElementById('timer-bar').style.width = '0%';
-    }
-
-    function speakText(text, targetPrefix, highlightClass) {
-      return new Promise((resolve) => {
-        if (isPaused) return;
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.voice = englishVoice;
-        utter.rate = 0.85; // 천천히 말하기
-
-        let wordIndex = 0;
-        utter.onboundary = (e) => {
-          if (e.name === 'word') {
-            document.querySelectorAll(`.${highlightClass}`).forEach(el => el.classList.remove(highlightClass));
-            const el = document.getElementById(`${targetPrefix}-word-${wordIndex}`);
-            if (el) el.classList.add(highlightClass);
-            wordIndex++;
-          }
-        };
-
-        utter.onend = () => {
-          document.querySelectorAll(`.${highlightClass}`).forEach(el => el.classList.remove(highlightClass));
-          resolve();
-        };
-
-        synth.speak(utter);
-      });
-    }
-
-    function waitForShadowing(seconds) {
-      return new Promise((resolve) => {
-        document.getElementById('status-tag').innerText = "따라 읽으세요! 🗣️";
-        document.getElementById('status-tag').className = "bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold animate-pulse";
+        const script = document.createElement('script');
+        script.id = 'googleSheetScript';
+        // JSONP 응답 핸들러 지정 (handleSheetJson) + 캐시 방지 타임스탬프
+        script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:handleSheetJson&_t=${Date.now()}`;
         
-        const bar = document.getElementById('timer-bar');
-        bar.style.transition = `width ${seconds}s linear`;
-        bar.style.width = '100%';
+        script.onerror = () => {
+            console.error("Google Sheets JSONP Error");
+            syncStatus.textContent = "시트 연결 실패 (오프라인 모드)";
+            syncDot.style.background = "#ef4444";
+            useFallbackData();
+            renderDashboard();
+            treeLoading.style.display = "none";
+            treeContainer.style.display = "flex";
+        };
 
-        setTimeout(() => {
-          bar.style.transition = 'none';
-          bar.style.width = '0%';
-          resolve();
-        }, seconds * 1000);
-      });
+        document.body.appendChild(script);
     }
 
-    async function runDrillCycle() {
-      if (isPaused) return;
+    // Google Sheets 응답 콜백 함수
+    window.handleSheetJson = function(json) {
+        try {
+            if (!json || !json.table || !json.table.rows) {
+                throw new Error("데이터 구조가 올바르지 않습니다.");
+            }
 
-      // 1. 질문 읽기
-      document.getElementById('status-tag').innerText = "원어민 듣기 🎧";
-      document.getElementById('status-tag').className = "bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold";
-      await speakText(drillData[currentIndex].q, 'q', 'highlight-q');
+            const rows = json.table.rows;
+            hierarchicalData = {};
 
-      // 2. 질문 따라하기 대기 (2.5초)
-      await waitForShadowing(2.5);
-      if (isPaused) return;
+            // 첫 번째 행은 헤더이므로 r=1부터 시작 (만약 헤더가 첫 행인 경우)
+            // 안전하게 첫 행이 헤더인지 체크
+            let startRow = 0;
+            if (rows.length > 0 && rows[0].c) {
+                const firstCol = rows[0].c[0] ? String(rows[0].c[0].v || "") : "";
+                if (firstCol.includes("대분류") || firstCol.includes("열")) {
+                    startRow = 1; // 헤더 건너뜀
+                }
+            }
 
-      // 3. 답변 읽기
-      document.getElementById('a-card').classList.remove('opacity-40');
-      document.getElementById('status-tag').innerText = "원어민 듣기 🎧";
-      document.getElementById('status-tag').className = "bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-xs font-bold";
-      await speakText(drillData[currentIndex].a, 'a', 'highlight-a');
+            for (let r = startRow; r < rows.length; r++) {
+                const c = rows[r].c;
+                if (!c) continue;
 
-      // 4. 답변 따라하기 대기 (2.5초)
-      await waitForShadowing(2.5);
-      if (isPaused) return;
+                const getVal = (idx) => {
+                    if (!c[idx] || c[idx].v === null || c[idx].v === undefined) return "";
+                    return String(c[idx].v).trim();
+                };
 
-      // 다음 문장 자동 진행
-      nextSentence();
+                // 6개 열: [대분류, 중분류, Q문장, Q번역, A문장, A번역]
+                const cat = getVal(0) || "중2 영어";
+                const unit = getVal(1) || "Lesson 1";
+                const q = getVal(2);
+                const qTrans = getVal(3);
+                const a = getVal(4);
+                const aTrans = getVal(5);
+
+                if (!q) continue;
+
+                if (!hierarchicalData[cat]) hierarchicalData[cat] = {};
+                if (!hierarchicalData[cat][unit]) hierarchicalData[cat][unit] = [];
+
+                hierarchicalData[cat][unit].push({ q, qTrans, a, aTrans });
+            }
+
+            renderDashboard();
+
+            syncStatus.textContent = `실시간 연동 완료 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`;
+            syncDot.style.background = "#34d399";
+        } catch (err) {
+            console.error("Parse Error:", err);
+            syncStatus.textContent = "시트 파싱 오류";
+            syncDot.style.background = "#ef4444";
+            useFallbackData();
+            renderDashboard();
+        } finally {
+            treeLoading.style.display = "none";
+            treeContainer.style.display = "flex";
+        }
+    };
+
+    // 오프라인/비상용 Fallback 데이터
+    function useFallbackData() {
+        hierarchicalData = {
+            "중2 영어 1학기": {
+                "Lesson 1. 비교 표현 (Which do you like)": [
+                    {
+                        q: "Which do you like more, winter or summer?",
+                        qTrans: "너 겨울이랑 여름 중에 어느 쪽을 더 좋아해?",
+                        a: "I like winter better than summer.",
+                        aTrans: "나는 여름보다 겨울을 더 좋아해."
+                    },
+                    {
+                        q: "Which do you like more, dogs or cats?",
+                        qTrans: "너는 개랑 고양이 중에 뭐가 더 좋아?",
+                        a: "I like dogs better than cats.",
+                        aTrans: "나는 고양이보다 개를 더 좋아해."
+                    }
+                ],
+                "Lesson 2. 의무와 조언 (You should)": [
+                    {
+                        q: "What should I do for my cold?",
+                        qTrans: "감기 걸렸을 땐 어떻게 해야 해?",
+                        a: "You should get some rest and drink warm water.",
+                        aTrans: "푹 쉬고 따뜻한 물을 마셔야 해."
+                    }
+                ]
+            }
+        };
     }
 
-    function nextSentence() {
-      synth.cancel();
-      if (currentIndex < drillData.length - 1) {
-        currentIndex++;
-        renderCard();
-        runDrillCycle();
-      } else {
-        document.getElementById('status-tag').innerText = "학습 완료! 🎉";
-      }
+    // -------------------------------------------------------------
+    // 3. 목차 대시보드 렌더링
+    // -------------------------------------------------------------
+    function renderDashboard() {
+        treeContainer.innerHTML = "";
+
+        const categories = Object.keys(hierarchicalData);
+        if (categories.length === 0) {
+            treeContainer.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:30px;'>학습 문장이 등록되지 않았습니다.</p>";
+            return;
+        }
+
+        categories.forEach(cat => {
+            const catGroup = document.createElement('div');
+            catGroup.className = 'category-group';
+
+            const catTitle = document.createElement('div');
+            catTitle.className = 'category-title';
+            catTitle.innerHTML = `📁 ${cat}`;
+            catGroup.appendChild(catTitle);
+
+            const unitList = document.createElement('div');
+            unitList.className = 'unit-list';
+
+            const units = Object.keys(hierarchicalData[cat]);
+            units.forEach(unit => {
+                const count = hierarchicalData[cat][unit].length;
+                const unitCard = document.createElement('div');
+                unitCard.className = 'unit-card';
+                unitCard.onclick = () => openStudyView(cat, unit);
+
+                unitCard.innerHTML = `
+                    <div class="unit-info">
+                        <h3>${unit}</h3>
+                        <span>총 ${count}개 문장 세트</span>
+                    </div>
+                    <div class="start-badge">
+                        <span>학습 시작</span> ▶
+                    </div>
+                `;
+                unitList.appendChild(unitCard);
+            });
+
+            catGroup.appendChild(unitList);
+            treeContainer.appendChild(catGroup);
+        });
     }
 
-    function prevSentence() {
-      synth.cancel();
-      if (currentIndex > 0) {
-        currentIndex--;
-        renderCard();
-        runDrillCycle();
-      }
+    // -------------------------------------------------------------
+    // 4. 화면 전환 제어
+    // -------------------------------------------------------------
+    function openStudyView(cat, unit) {
+        currentCategory = cat;
+        currentUnit = unit;
+        currentUnitItems = hierarchicalData[cat][unit] || [];
+        currentIndex = 0;
+        isTranslated = false;
+
+        currentUnitBadge.textContent = unit;
+        cardCategoryText.textContent = cat;
+
+        dashboardView.style.display = "none";
+        studyView.style.display = "flex";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        initCard();
     }
 
-    function togglePlay() {
-      isPaused = !isPaused;
-      const btn = document.getElementById('pause-btn');
-      if (isPaused) {
-        synth.cancel();
-        btn.innerText = "계속하기";
-        document.getElementById('status-tag').innerText = "일시정지";
-      } else {
-        btn.innerText = "일시정지";
-        runDrillCycle();
-      }
+    function backToDashboard() {
+        stopAudio();
+        studyView.style.display = "none";
+        dashboardView.style.display = "flex";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  </script>
+
+    // -------------------------------------------------------------
+    // 5. 섀도잉 카드 렌더링 & 제어
+    // -------------------------------------------------------------
+    function initCard() {
+        stopAudio();
+        statusBadge.textContent = "대기 중";
+        playBtn.innerHTML = "▶ 듣고 따라하기";
+
+        if (!currentUnitItems || currentUnitItems.length === 0) return;
+
+        const item = currentUnitItems[currentIndex];
+
+        qSentenceEl.innerHTML = renderWords(item.q);
+        aSentenceEl.innerHTML = renderWords(item.a);
+
+        qTransEl.textContent = item.qTrans;
+        aTransEl.textContent = item.aTrans;
+        updateTranslationView();
+
+        const total = currentUnitItems.length;
+        cardCounterEl.textContent = `${currentIndex + 1} / ${total}`;
+        pageIndicatorEl.textContent = `${currentIndex + 1} / ${total}`;
+
+        prevBtn.disabled = (currentIndex === 0);
+        nextBtn.disabled = (currentIndex === total - 1);
+    }
+
+    function renderWords(text) {
+        if (!text) return "";
+        return text.split(' ').map(word => `<span class="word">${word}</span>`).join(' ');
+    }
+
+    function toggleTranslation() {
+        isTranslated = !isTranslated;
+        updateTranslationView();
+        transBtnText.textContent = isTranslated ? "해석 숨기기" : "해석 보기";
+    }
+
+    function updateTranslationView() {
+        if (isTranslated) {
+            qTransEl.classList.add('visible');
+            aTransEl.classList.add('visible');
+        } else {
+            qTransEl.classList.remove('visible');
+            aTransEl.classList.remove('visible');
+        }
+    }
+
+    function setSpeed(speed, e) {
+        currentSpeed = speed;
+        document.querySelectorAll('.speed-btn').forEach(btn => btn.classList.remove('active'));
+        if (e && e.target) e.target.classList.add('active');
+        if (isPlaying) {
+            stopAudio();
+            startShadowing();
+        }
+    }
+
+    function movePage(dir) {
+        const newIdx = currentIndex + dir;
+        if (newIdx < 0 || newIdx >= currentUnitItems.length) return;
+        currentIndex = newIdx;
+        isTranslated = false;
+        transBtnText.textContent = "해석 보기";
+        initCard();
+    }
+
+    // -------------------------------------------------------------
+    // 6. 음성 재생 & 하이라이트 동기화
+    // -------------------------------------------------------------
+    function stopAudio() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        isPlaying = false;
+        clearHighlights();
+    }
+
+    function startShadowing() {
+        if (isPlaying) {
+            stopAudio();
+            statusBadge.textContent = "재생 중지됨";
+            playBtn.innerHTML = "▶ 듣고 따라하기";
+            return;
+        }
+
+        if (!('speechSynthesis' in window)) {
+            alert('이 브라우저는 음성 재생을 지원하지 않습니다.');
+            return;
+        }
+
+        const item = currentUnitItems[currentIndex];
+        if (!item) return;
+
+        const fullText = `${item.q}.   ${item.a}.`;
+        const utterance = new SpeechSynthesisUtterance(fullText);
+        utterance.lang = 'en-US';
+        utterance.rate = currentSpeed;
+
+        const voices = window.speechSynthesis.getVoices();
+        const usVoice = voices.find(v => v.lang.startsWith('en-US') && !v.name.includes('Google')) ||
+                        voices.find(v => v.lang.startsWith('en-US')) ||
+                        voices.find(v => v.lang.startsWith('en'));
+        if (usVoice) utterance.voice = usVoice;
+
+        const qWords = qSentenceEl.querySelectorAll('.word');
+        const aWords = aSentenceEl.querySelectorAll('.word');
+
+        utterance.onstart = () => {
+            isPlaying = true;
+            statusBadge.textContent = "🎧 원어민 음성 재생 중...";
+            playBtn.innerHTML = "⏹ 멈추기";
+        };
+
+        utterance.onboundary = (event) => {
+            if (event.name === 'word') {
+                highlightWordByCharIndex(event.charIndex, qWords, aWords, item.q.length);
+            }
+        };
+
+        utterance.onend = () => {
+            isPlaying = false;
+            clearHighlights();
+            playBtn.innerHTML = "▶ 다시 듣기";
+            statusBadge.textContent = "🎤 내 차례! 따라 말해보세요";
+
+            setTimeout(() => {
+                if (!isPlaying) statusBadge.textContent = "대기 중";
+            }, 3500);
+        };
+
+        utterance.onerror = () => {
+            isPlaying = false;
+            clearHighlights();
+            playBtn.innerHTML = "▶ 듣고 따라하기";
+            statusBadge.textContent = "재생 오류 발생";
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function highlightWordByCharIndex(charIdx, qWords, aWords, qLength) {
+        clearHighlights();
+
+        if (charIdx <= qLength) {
+            let accumulated = 0;
+            for (let i = 0; i < qWords.length; i++) {
+                accumulated += qWords[i].textContent.length + 1;
+                if (accumulated >= charIdx) {
+                    qWords[i].classList.add('highlight');
+                    break;
+                }
+            }
+        } else {
+            const adjustedIdx = charIdx - qLength - 3;
+            let accumulated = 0;
+            for (let i = 0; i < aWords.length; i++) {
+                accumulated += aWords[i].textContent.length + 1;
+                if (accumulated >= adjustedIdx) {
+                    aWords[i].classList.add('highlight');
+                    break;
+                }
+            }
+        }
+    }
+
+    function clearHighlights() {
+        document.querySelectorAll('.word.highlight').forEach(el => el.classList.remove('highlight'));
+    }
+
+    // -------------------------------------------------------------
+    // 7. 모바일 터치 스와이프 제스처
+    // -------------------------------------------------------------
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const cardEl = document.getElementById('cardContainer');
+
+    cardEl.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    cardEl.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+        const swipeDistance = touchEndX - touchStartX;
+        if (Math.abs(swipeDistance) > 60) {
+            if (swipeDistance < 0) {
+                movePage(1);
+            } else {
+                movePage(-1);
+            }
+        }
+    }
+
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = () => {
+            window.speechSynthesis.getVoices();
+        };
+    }
+
+    // 실행
+    loadSheetData();
+</script>
+
 </body>
 </html>
