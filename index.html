@@ -283,12 +283,14 @@
             justify-content: space-between;
             align-items: center;
             font-size: 0.85rem;
+            min-height: 48px; /* 흔들림 방지 고정 높이 */
         }
 
         .speed-control {
             display: flex;
             gap: 4px;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .speed-btn {
@@ -309,9 +311,39 @@
         }
 
         .status-badge {
-            font-size: 0.8rem;
-            font-weight: 600;
+            font-size: 0.82rem;
+            font-weight: 700;
             color: var(--primary);
+            white-space: nowrap;
+            text-align: right;
+            min-width: 72px; /* 텍스트 변경 시 레이아웃 밀림 방지 */
+        }
+
+        /* 🏠 홈 버튼 스타일 */
+        .home-btn {
+            background: #f1f5f9;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 4px 7px;
+            font-size: 1.05rem;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .home-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            transform: scale(1.08);
+        }
+
+        .home-btn:active {
+            transform: scale(0.95);
         }
 
         /* 카드 메인 */
@@ -563,7 +595,10 @@
     <!-- 상단 헤더 -->
     <header class="app-header">
         <div class="header-title-box">
-            <h1>🎧 영어 패턴 섀도잉</h1>
+            <h1>
+                <button class="home-btn" onclick="backToDashboard()" title="초기화면(전체 목차)으로 이동" aria-label="홈으로">🏠</button>
+                <span onclick="backToDashboard()" style="cursor: pointer;" title="초기화면(전체 목차)으로 이동">영어 패턴 섀도잉</span>
+            </h1>
             <p id="headerSubText">구글 시트 실시간 연동</p>
         </div>
         <div class="header-actions">
@@ -1253,7 +1288,7 @@
 
         utterance.onstart = () => {
             isPlaying = true;
-            statusBadge.textContent = "🎧 음성 재생 중...";
+            statusBadge.textContent = "🎧 재생 중...";
             playBtn.innerHTML = "⏹ 멈추기";
         };
 
@@ -1268,7 +1303,7 @@
             window._activeUtterance = null;
             clearHighlights();
             playBtn.innerHTML = "▶ 다시 듣기";
-            statusBadge.textContent = "🎤 내 차례! 따라 말해보세요";
+            statusBadge.textContent = "🎤 내차례!";
 
             setTimeout(() => {
                 if (!isPlaying) statusBadge.textContent = "대기 중";
