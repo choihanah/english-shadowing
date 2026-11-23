@@ -1055,6 +1055,7 @@
     let isTranslated = false;
     let isPlaying = false;
     let hasStudiedCurrentCard = false;
+    let cardEnteredAt = 0;
     let activeTooltipTarget = null;
 
     // DOM 요소
@@ -1315,6 +1316,7 @@
         hideTooltip();
         stopAudio();
         hasStudiedCurrentCard = false;
+        cardEnteredAt = Date.now();
         statusBadge.textContent = "대기 중";
         playBtn.innerHTML = "▶ 듣고 따라하기";
 
@@ -1642,8 +1644,9 @@
         hideTooltip();
         const newIdx = currentIndex + dir;
 
-        // 현재 문장을 실제로 학습(듣기/해석/힌트 탭)한 뒤 다음 페이지로 넘어갈 때만 H열 체크 카드 팝업
-        if (dir > 0 && !bypassReview && hasStudiedCurrentCard && isPopupReviewEnabled()) {
+        // 현재 문장을 학습(듣기/해석/힌트 탭)했거나 2초 이상 본 뒤 다음 페이지로 넘어갈 때 H열 체크 카드 팝업
+        const stayedEnough = (Date.now() - cardEnteredAt) >= 2000;
+        if (dir > 0 && !bypassReview && (hasStudiedCurrentCard || stayedEnough) && isPopupReviewEnabled()) {
             const curItem = currentUnitItems[currentIndex];
             if (curItem && curItem.reviewItems && curItem.reviewItems.length > 0) {
                 const hasNextCard = (newIdx < currentUnitItems.length);
