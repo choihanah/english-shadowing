@@ -1054,8 +1054,6 @@
     let currentSpeed = 1.0;
     let isTranslated = false;
     let isPlaying = false;
-    let hasStudiedCurrentCard = false;
-    let cardEnteredAt = 0;
     let activeTooltipTarget = null;
 
     // DOM 요소
@@ -1315,8 +1313,6 @@
     function initCard() {
         hideTooltip();
         stopAudio();
-        hasStudiedCurrentCard = false;
-        cardEnteredAt = Date.now();
         statusBadge.textContent = "대기 중";
         playBtn.innerHTML = "▶ 듣고 따라하기";
 
@@ -1455,7 +1451,6 @@
     // -------------------------------------------------------------
     function toggleHint(el, e) {
         e.stopPropagation();
-        hasStudiedCurrentCard = true;
 
         const meaning = el.getAttribute('data-meaning');
         const textToSpeak = el.getAttribute('data-speak') || el.textContent;
@@ -1616,7 +1611,6 @@
     // 6. 조작 및 네비게이션
     // -------------------------------------------------------------
     function toggleTranslation() {
-        hasStudiedCurrentCard = true;
         isTranslated = !isTranslated;
         updateTranslationView();
         transBtnText.textContent = isTranslated ? "해석 숨기기" : "해석 보기";
@@ -1644,9 +1638,8 @@
         hideTooltip();
         const newIdx = currentIndex + dir;
 
-        // 현재 문장을 학습(듣기/해석/힌트 탭)했거나 2초 이상 본 뒤 다음 페이지로 넘어갈 때 H열 체크 카드 팝업
-        const stayedEnough = (Date.now() - cardEnteredAt) >= 2000;
-        if (dir > 0 && !bypassReview && (hasStudiedCurrentCard || stayedEnough) && isPopupReviewEnabled()) {
+        // 다음 페이지로 넘어갈 때 H열(복습기록) 표현이 있으면 무조건 안다/모른다 카드 팝업
+        if (dir > 0 && !bypassReview && isPopupReviewEnabled()) {
             const curItem = currentUnitItems[currentIndex];
             if (curItem && curItem.reviewItems && curItem.reviewItems.length > 0) {
                 const hasNextCard = (newIdx < currentUnitItems.length);
@@ -1695,7 +1688,6 @@
 
         const item = currentUnitItems[currentIndex];
         if (!item) return;
-        hasStudiedCurrentCard = true;
 
         clearTtsTimers();
         if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
