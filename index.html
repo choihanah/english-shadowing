@@ -608,6 +608,284 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* ================= 🧠 망각곡선 복습 덱 카드 & 모달 ================= */
+        .srs-deck-card {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1px solid #fcd34d;
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .srs-deck-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(245, 158, 11, 0.14);
+        }
+
+        .srs-deck-info h3 {
+            font-size: 0.96rem;
+            font-weight: 700;
+            color: #92400e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 3px;
+        }
+
+        .srs-due-pill {
+            background: #f59e0b;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 999px;
+        }
+
+        .srs-due-pill.done {
+            background: #10b981;
+        }
+
+        .srs-deck-info p {
+            font-size: 0.78rem;
+            color: #b45309;
+        }
+
+        .srs-start-btn {
+            background: #f59e0b;
+            color: #ffffff;
+            border: none;
+            border-radius: 20px;
+            padding: 7px 13px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .srs-start-btn.done {
+            background: #10b981;
+        }
+
+        /* 공통 모달 오버레이 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.58);
+            backdrop-filter: blur(3px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            z-index: 200;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 420px;
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            animation: slideFromBottom 0.2s ease;
+        }
+
+        .review-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-sub);
+        }
+
+        .srs-level-badge {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+        }
+
+        .review-flashcard {
+            background: #f8fafc;
+            border: 1.5px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .review-flashcard:active {
+            border-color: var(--primary);
+        }
+
+        .review-phrase-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .review-phrase {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--text-main);
+            word-break: keep-all;
+        }
+
+        .review-speak-btn {
+            background: var(--primary-light);
+            border: none;
+            color: var(--primary);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .review-meaning-box {
+            min-height: 28px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 10px;
+            background: #eef2ff;
+        }
+
+        .review-meaning-box.hidden-meaning {
+            color: var(--text-sub);
+            background: #e2e8f0;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .review-btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-dontknow {
+            flex: 1;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 13px 10px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .btn-know {
+            flex: 1;
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+            border-radius: 12px;
+            padding: 13px 10px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .btn-sub-hint {
+            font-size: 0.72rem;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        .review-modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            color: var(--text-sub);
+        }
+
+        .text-link-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* 설정 모달 */
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .setting-label {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .setting-desc {
+            font-size: 0.76rem;
+            color: var(--text-sub);
+            line-height: 1.4;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 9px 11px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.82rem;
+            outline: none;
+        }
+
+        .setting-input:focus {
+            border-color: var(--primary);
+        }
+
+        .setting-toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
     </style>
 </head>
 <body>
@@ -622,6 +900,9 @@
             </h1>
         </div>
         <div class="header-actions">
+            <button class="icon-btn" onclick="openSettingsModal()" title="망각곡선 및 구글 시트 연동 설정" aria-label="설정">
+                <span>⚙️</span>
+            </button>
             <button class="icon-btn" onclick="loadSheetData(true)">
                 <span>↻</span> 새로고침
             </button>
@@ -637,6 +918,18 @@
                 <span class="sync-dot" id="syncDot"></span>
                 <span id="syncStatus">구글 시트 연결 중...</span>
             </div>
+        </div>
+
+        <!-- 🧠 오늘의 망각곡선 복습 덱 -->
+        <div id="srsDeckCard" class="srs-deck-card" style="display: none;" onclick="startTodayReviewDeck()">
+            <div class="srs-deck-info">
+                <h3>
+                    <span>🧠 오늘의 망각곡선 복습</span>
+                    <span id="srsDuePill" class="srs-due-pill">0개</span>
+                </h3>
+                <p id="srsDeckSub">복습 기록을 불러오는 중...</p>
+            </div>
+            <button id="srsStartBtn" class="srs-start-btn" type="button">복습 시작 ▶</button>
         </div>
 
         <div id="treeLoading" class="loading-box">
@@ -715,6 +1008,69 @@
 
 <!-- 🎈 말풍선 툴팁 엘리먼트 -->
 <div id="tooltipBubble" class="tooltip-bubble"></div>
+
+<!-- 🧠 망각곡선 안다/모른다 체크 모달 -->
+<div id="reviewModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="review-modal-header">
+            <span id="reviewModalTitle">🧠 핵심 표현 체크 (1 / 1)</span>
+            <span id="reviewLevelBadge" class="srs-level-badge">신규</span>
+        </div>
+
+        <div class="review-flashcard" onclick="revealReviewMeaning()">
+            <div class="review-phrase-row">
+                <span id="reviewPhraseText" class="review-phrase">want to</span>
+                <button class="review-speak-btn" type="button" onclick="event.stopPropagation(); speakReviewPhrase()" title="발음 듣기">🔊</button>
+            </div>
+            <div id="reviewMeaningBox" class="review-meaning-box hidden-meaning">👀 터치해서 뜻 확인</div>
+        </div>
+
+        <div class="review-btn-row">
+            <button class="btn-dontknow" type="button" onclick="answerReviewCard(false)">
+                <span>😅 모른다</span>
+                <span class="btn-sub-hint">오늘 다시 복습</span>
+            </button>
+            <button class="btn-know" type="button" onclick="answerReviewCard(true)">
+                <span>😎 안다</span>
+                <span id="knowNextHint" class="btn-sub-hint">1일 뒤 복습</span>
+            </button>
+        </div>
+
+        <div class="review-modal-footer">
+            <span id="reviewSyncNote">로컬 저장됨</span>
+            <button id="reviewSkipBtn" class="text-link-btn" type="button" onclick="skipReviewModal()">건너뛰기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ⚙️ 망각곡선 & Apps Script 연동 설정 모달 -->
+<div id="settingsModal" class="modal-overlay" onclick="if(event.target === this) closeSettingsModal()">
+    <div class="modal-card">
+        <div class="review-modal-header">
+            <span style="font-size: 1rem; color: var(--text-main);">⚙️ 망각곡선 & 시트 연동 설정</span>
+            <button class="text-link-btn" type="button" onclick="closeSettingsModal()">닫기 ✕</button>
+        </div>
+
+        <div class="setting-toggle-row">
+            <div>
+                <div class="setting-label">페이지 넘길 때 안다/모른다 카드</div>
+                <div class="setting-desc">H열(복습기록) 표현이 있는 문장을 넘길 때 자동 출제</div>
+            </div>
+            <input type="checkbox" id="togglePopupCheck" style="width:20px; height:20px; accent-color: var(--primary); cursor:pointer;">
+        </div>
+
+        <div class="setting-group">
+            <label class="setting-label" for="appsScriptUrlInput">Google Apps Script 웹앱 URL</label>
+            <div class="setting-desc">구글 시트 <b>복습로그</b> 탭과 스마트폰·PC 기록을 실시간 동기화합니다.</div>
+            <input type="url" id="appsScriptUrlInput" class="setting-input" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:4px;">
+            <button class="btn btn-secondary" type="button" onclick="closeSettingsModal()">취소</button>
+            <button class="btn btn-primary" type="button" onclick="saveSettings()">저장 & 동기화</button>
+        </div>
+    </div>
+</div>
 
 <script>
     // -------------------------------------------------------------
@@ -821,18 +1177,22 @@
                 const a = getVal(4);
                 const aTrans = getVal(5);
                 const rawHints = getVal(6); // G열
+                const rawReview = getVal(7); // H열 (복습기록)
 
                 if (!q) continue;
 
                 const hints = parseHints(rawHints);
+                const reviewItems = parseReviewItems(rawReview);
 
                 if (!hierarchicalData[cat]) hierarchicalData[cat] = {};
                 if (!hierarchicalData[cat][unit]) hierarchicalData[cat][unit] = [];
 
-                hierarchicalData[cat][unit].push({ q, qTrans, a, aTrans, hints });
+                hierarchicalData[cat][unit].push({ q, qTrans, a, aTrans, hints, reviewItems });
             }
 
             renderDashboard();
+            updateSrsDeckCard();
+            loadSrsFromCloud();
 
             syncStatus.textContent = `실시간 연동 완료 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`;
             syncDot.style.background = "#34d399";
@@ -864,6 +1224,25 @@
             }
         });
         return hintMap;
+    }
+
+    // H열(복습기록) 파싱: "always: 항상, want to: ~하고 싶다" -> 배열 반환
+    function parseReviewItems(raw) {
+        const list = [];
+        if (!raw) return list;
+
+        const items = raw.split(/[\r\n,;]+/).map(s => s.trim()).filter(Boolean);
+        items.forEach(item => {
+            const match = item.match(/^(.+?)\s*[:=]\s*(.+)$/);
+            if (match) {
+                const phrase = match[1].trim();
+                const meaning = match[2].trim();
+                if (phrase && meaning) {
+                    list.push({ phrase, meaning });
+                }
+            }
+        });
+        return list;
     }
 
     function useFallbackData() {
@@ -956,6 +1335,7 @@
         stopAudio();
         studyView.style.display = "none";
         dashboardView.style.display = "flex";
+        updateSrsDeckCard();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -1233,9 +1613,24 @@
         }
     }
 
-    function movePage(dir) {
+    function movePage(dir, bypassReview = false) {
         hideTooltip();
         const newIdx = currentIndex + dir;
+
+        // 다음 페이지로 넘어갈 때 H열(복습기록) 표현이 있으면 안다/모른다 카드 팝업
+        if (dir > 0 && !bypassReview && isPopupReviewEnabled()) {
+            const curItem = currentUnitItems[currentIndex];
+            if (curItem && curItem.reviewItems && curItem.reviewItems.length > 0) {
+                const hasNextCard = (newIdx < currentUnitItems.length);
+                openReviewModal(curItem.reviewItems, 'transition', () => {
+                    if (hasNextCard) {
+                        movePage(1, true);
+                    }
+                });
+                return;
+            }
+        }
+
         if (newIdx < 0 || newIdx >= currentUnitItems.length) return;
         currentIndex = newIdx;
         isTranslated = false;
@@ -1582,6 +1977,332 @@
 
     window.addEventListener('pointerup', handlePointerEnd);
     window.addEventListener('pointercancel', handlePointerEnd);
+
+    // -------------------------------------------------------------
+    // 9. 망각곡선(SRS) 엔진 + Apps Script 동기화 + 안다/모른다 모달
+    // -------------------------------------------------------------
+    const SRS_STORAGE_KEY = 'shadowing_srs_records_v1';
+    const SRS_POPUP_KEY = 'shadowing_srs_popup_enabled';
+    const APPS_SCRIPT_URL_KEY = 'shadowing_apps_script_url';
+    const DEFAULT_APPS_SCRIPT_URL = ''; // Apps Script 배포 URL을 여기에 고정할 수도 있습니다
+    const SRS_INTERVALS = [0, 1, 3, 7, 14, 30]; // Lv.0 ~ Lv.5 복습 간격(일)
+
+    let srsRecords = loadLocalSrs();
+    let reviewQueue = [];
+    let reviewQueueIdx = 0;
+    let reviewModalMode = 'transition'; // 'transition' | 'deck'
+    let reviewOnComplete = null;
+    let reviewMeaningRevealed = false;
+
+    function getTodayStr() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function addDaysStr(days) {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function getAppsScriptUrl() {
+        return (localStorage.getItem(APPS_SCRIPT_URL_KEY) || DEFAULT_APPS_SCRIPT_URL || '').trim();
+    }
+
+    function isPopupReviewEnabled() {
+        const saved = localStorage.getItem(SRS_POPUP_KEY);
+        return saved === null ? true : saved === 'true';
+    }
+
+    function loadLocalSrs() {
+        try {
+            const raw = localStorage.getItem(SRS_STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveLocalSrs() {
+        try {
+            localStorage.setItem(SRS_STORAGE_KEY, JSON.stringify(srsRecords));
+        } catch (e) {
+            console.warn('localStorage 저장 실패:', e);
+        }
+    }
+
+    function getAllSheetReviewItems() {
+        const map = new Map();
+        Object.values(hierarchicalData).forEach(unitsObj => {
+            Object.values(unitsObj).forEach(items => {
+                items.forEach(item => {
+                    (item.reviewItems || []).forEach(rv => {
+                        const key = rv.phrase.toLowerCase();
+                        if (!map.has(key)) {
+                            map.set(key, { phrase: rv.phrase, meaning: rv.meaning });
+                        }
+                    });
+                });
+            });
+        });
+        return Array.from(map.values());
+    }
+
+    function getDueReviewItems() {
+        const today = getTodayStr();
+        const allItems = getAllSheetReviewItems();
+        const due = [];
+
+        // 시트 H열에 등록된 표현 중 오늘 복습 예정이거나 Lv.0인 항목
+        allItems.forEach(item => {
+            const key = item.phrase.toLowerCase();
+            const rec = srsRecords[key];
+            if (rec && rec.lastReviewed && (!rec.nextReviewDate || rec.nextReviewDate <= today || rec.level === 0)) {
+                due.push(item);
+            }
+        });
+
+        // 시트 외 기존 기록에만 있는 복습 대상도 포함
+        const knownKeys = new Set(allItems.map(i => i.phrase.toLowerCase()));
+        Object.entries(srsRecords).forEach(([key, rec]) => {
+            if (!knownKeys.has(key) && rec.lastReviewed && (!rec.nextReviewDate || rec.nextReviewDate <= today || rec.level === 0)) {
+                due.push({ phrase: rec.phrase, meaning: rec.meaning });
+            }
+        });
+
+        return due;
+    }
+
+    function updateSrsDeckCard() {
+        const card = document.getElementById('srsDeckCard');
+        const pill = document.getElementById('srsDuePill');
+        const sub = document.getElementById('srsDeckSub');
+        const btn = document.getElementById('srsStartBtn');
+        if (!card) return;
+
+        const allItems = getAllSheetReviewItems();
+        const dueItems = getDueReviewItems();
+        const memorizedCount = Object.values(srsRecords).filter(r => r.level >= 1).length;
+
+        if (allItems.length === 0 && Object.keys(srsRecords).length === 0) {
+            card.style.display = 'none';
+            return;
+        }
+
+        card.style.display = 'flex';
+        if (dueItems.length > 0) {
+            pill.textContent = `${dueItems.length}개 대기`;
+            pill.classList.remove('done');
+            btn.textContent = '복습 시작 ▶';
+            btn.classList.remove('done');
+            sub.textContent = `지금 복습할 표현 ${dueItems.length}개 · 누적 암기 ${memorizedCount} / ${allItems.length}개`;
+        } else {
+            pill.textContent = '오늘 완료';
+            pill.classList.add('done');
+            btn.textContent = allItems.length > 0 ? '전체 연습 ▶' : '완료 ✓';
+            btn.classList.add('done');
+            sub.textContent = `등록된 핵심 표현 ${allItems.length}개 · 누적 암기 ${memorizedCount}개`;
+        }
+    }
+
+    function startTodayReviewDeck() {
+        const dueItems = getDueReviewItems();
+        const targetList = dueItems.length > 0 ? dueItems : getAllSheetReviewItems();
+        if (targetList.length === 0) {
+            alert('구글 시트 H열(복습기록)에 등록된 표현이 아직 없습니다.');
+            return;
+        }
+        openReviewModal(targetList, 'deck', () => {
+            updateSrsDeckCard();
+        });
+    }
+
+    function openReviewModal(items, mode, onComplete) {
+        if (!items || items.length === 0) {
+            if (onComplete) onComplete();
+            return;
+        }
+        stopAudio();
+        reviewQueue = items.map(i => ({ ...i }));
+        reviewQueueIdx = 0;
+        reviewModalMode = mode;
+        reviewOnComplete = onComplete;
+
+        document.getElementById('reviewModal').classList.add('show');
+        renderCurrentReviewCard();
+    }
+
+    function renderCurrentReviewCard() {
+        const item = reviewQueue[reviewQueueIdx];
+        if (!item) {
+            closeReviewModal(true);
+            return;
+        }
+
+        reviewMeaningRevealed = false;
+        const key = item.phrase.toLowerCase();
+        const rec = srsRecords[key];
+        const curLevel = rec ? (rec.level || 0) : 0;
+        const nextLevelIfKnow = Math.min(SRS_INTERVALS.length - 1, curLevel + 1);
+        const nextDays = SRS_INTERVALS[nextLevelIfKnow];
+
+        const prefix = reviewModalMode === 'deck' ? '🧠 오늘의 복습' : '🧠 핵심 표현 체크';
+        document.getElementById('reviewModalTitle').textContent = `${prefix} (${reviewQueueIdx + 1} / ${reviewQueue.length})`;
+        document.getElementById('reviewLevelBadge').textContent = rec && rec.lastReviewed ? `Lv.${curLevel}` : '신규';
+        document.getElementById('reviewPhraseText').textContent = item.phrase;
+
+        const meaningBox = document.getElementById('reviewMeaningBox');
+        meaningBox.textContent = '👀 터치해서 뜻 확인';
+        meaningBox.classList.add('hidden-meaning');
+
+        document.getElementById('knowNextHint').textContent = `${nextDays}일 뒤 복습`;
+        document.getElementById('reviewSkipBtn').textContent = reviewModalMode === 'deck' ? '복습 닫기' : '건너뛰기';
+        document.getElementById('reviewSyncNote').textContent = getAppsScriptUrl() ? '☁️ 구글 시트 실시간 동기화' : '💾 브라우저 로컬 저장 (⚙️에서 시트 연동)';
+
+        speakPhrase(item.phrase);
+    }
+
+    function revealReviewMeaning() {
+        const item = reviewQueue[reviewQueueIdx];
+        if (!item) return;
+        const meaningBox = document.getElementById('reviewMeaningBox');
+        if (!reviewMeaningRevealed) {
+            reviewMeaningRevealed = true;
+            meaningBox.textContent = item.meaning;
+            meaningBox.classList.remove('hidden-meaning');
+        } else {
+            speakPhrase(item.phrase);
+        }
+    }
+
+    function speakReviewPhrase() {
+        const item = reviewQueue[reviewQueueIdx];
+        if (item) speakPhrase(item.phrase);
+    }
+
+    function answerReviewCard(isKnown) {
+        const item = reviewQueue[reviewQueueIdx];
+        if (!item) return;
+
+        recordSrsResult(item.phrase, item.meaning, isKnown);
+
+        // 오늘의 복습 덱 모드에서 '모른다'를 누르면 세션 맨 뒤에 다시 추가
+        if (reviewModalMode === 'deck' && !isKnown) {
+            reviewQueue.push({ ...item });
+        }
+
+        reviewQueueIdx++;
+        if (reviewQueueIdx < reviewQueue.length) {
+            renderCurrentReviewCard();
+        } else {
+            closeReviewModal(true);
+        }
+    }
+
+    function skipReviewModal() {
+        closeReviewModal(reviewModalMode === 'transition');
+    }
+
+    function closeReviewModal(runCallback) {
+        document.getElementById('reviewModal').classList.remove('show');
+        updateSrsDeckCard();
+        const cb = reviewOnComplete;
+        reviewOnComplete = null;
+        if (runCallback && cb) cb();
+    }
+
+    function recordSrsResult(phrase, meaning, isKnown) {
+        const key = phrase.trim().toLowerCase();
+        const prev = srsRecords[key] || {
+            phrase: phrase.trim(),
+            meaning: meaning.trim(),
+            level: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            lastReviewed: ''
+        };
+
+        const newLevel = isKnown ? Math.min(SRS_INTERVALS.length - 1, (prev.level || 0) + 1) : 0;
+        const intervalDays = SRS_INTERVALS[newLevel];
+        const updated = {
+            phrase: phrase.trim(),
+            meaning: meaning.trim(),
+            level: newLevel,
+            nextReviewDate: addDaysStr(intervalDays),
+            correctCount: (prev.correctCount || 0) + (isKnown ? 1 : 0),
+            wrongCount: (prev.wrongCount || 0) + (isKnown ? 0 : 1),
+            lastReviewed: getTodayStr()
+        };
+
+        srsRecords[key] = updated;
+        saveLocalSrs();
+        syncSrsRecordToCloud(updated);
+    }
+
+    function syncSrsRecordToCloud(record) {
+        const url = getAppsScriptUrl();
+        if (!url) return;
+
+        fetch(url, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(record)
+        }).catch(err => console.warn('Apps Script 저장 실패:', err));
+    }
+
+    function loadSrsFromCloud() {
+        const url = getAppsScriptUrl();
+        if (!url) return;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.status === 'ok' && data.records) {
+                    Object.entries(data.records).forEach(([key, cloudRec]) => {
+                        const localRec = srsRecords[key];
+                        const cloudTotal = (cloudRec.correctCount || 0) + (cloudRec.wrongCount || 0);
+                        const localTotal = localRec ? ((localRec.correctCount || 0) + (localRec.wrongCount || 0)) : -1;
+                        if (!localRec || cloudRec.lastReviewed > (localRec.lastReviewed || '') || cloudTotal >= localTotal) {
+                            srsRecords[key] = cloudRec;
+                        }
+                    });
+                    saveLocalSrs();
+                    updateSrsDeckCard();
+                }
+            })
+            .catch(err => console.warn('Apps Script 불러오기 실패:', err));
+    }
+
+    function openSettingsModal() {
+        document.getElementById('togglePopupCheck').checked = isPopupReviewEnabled();
+        document.getElementById('appsScriptUrlInput').value = getAppsScriptUrl();
+        document.getElementById('settingsModal').classList.add('show');
+    }
+
+    function closeSettingsModal() {
+        document.getElementById('settingsModal').classList.remove('show');
+    }
+
+    function saveSettings() {
+        const enabled = document.getElementById('togglePopupCheck').checked;
+        const url = document.getElementById('appsScriptUrlInput').value.trim();
+        localStorage.setItem(SRS_POPUP_KEY, String(enabled));
+        if (url) {
+            localStorage.setItem(APPS_SCRIPT_URL_KEY, url);
+        } else {
+            localStorage.removeItem(APPS_SCRIPT_URL_KEY);
+        }
+        closeSettingsModal();
+        loadSrsFromCloud();
+        updateSrsDeckCard();
+    }
 
     loadSheetData();
 </script>
