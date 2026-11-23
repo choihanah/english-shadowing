@@ -234,6 +234,7 @@
             display: none;
             padding: 12px 16px 14px;
             gap: 10px;
+            touch-action: pan-y;
         }
 
         .current-unit-badge {
@@ -1818,21 +1819,23 @@
     }
 
     // -------------------------------------------------------------
-    // 8. 모바일 좌우 터치 스와이프
+    // 8. 모바일 좌우 터치 스와이프 (학습 화면 전체: 카드 + 하단 빈 공간 포함)
     // -------------------------------------------------------------
     let touchStartX = 0;
     let touchStartY = 0;
-    const cardEl = document.getElementById('cardContainer');
+    let swipeIgnored = false;
 
-    cardEl.addEventListener('touchstart', e => {
+    studyView.addEventListener('touchstart', e => {
+        swipeIgnored = !!e.target.closest('select, option');
         touchStartX = e.changedTouches[0].screenX;
         touchStartY = e.changedTouches[0].screenY;
     }, { passive: true });
 
-    cardEl.addEventListener('touchend', e => {
+    studyView.addEventListener('touchend', e => {
+        if (swipeIgnored) return;
         const dx = e.changedTouches[0].screenX - touchStartX;
         const dy = e.changedTouches[0].screenY - touchStartY;
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.2) {
             if (dx < 0) {
                 movePage(1);
             } else {
