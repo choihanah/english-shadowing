@@ -983,7 +983,10 @@
     <div class="modal-card">
         <div class="review-modal-header">
             <span id="reviewModalTitle">🧠 핵심 표현 체크 (1 / 1)</span>
-            <span id="reviewLevelBadge" class="srs-level-badge">신규</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span id="reviewLevelBadge" class="srs-level-badge">신규</span>
+                <button id="reviewDeckCloseBtn" class="text-link-btn" type="button" onclick="closeReviewModal(false)" style="display:none; text-decoration:none; font-size:0.95rem;" aria-label="복습 닫기">✕</button>
+            </div>
         </div>
 
         <div class="review-flashcard" onclick="revealReviewMeaning()">
@@ -1003,11 +1006,6 @@
                 <span>😎 안다</span>
                 <span id="knowNextHint" class="btn-sub-hint">1일 뒤 복습</span>
             </button>
-        </div>
-
-        <div class="review-modal-footer">
-            <span id="reviewSyncNote">로컬 저장됨</span>
-            <button id="reviewSkipBtn" class="text-link-btn" type="button" onclick="skipReviewModal()">건너뛰기</button>
         </div>
     </div>
 </div>
@@ -2027,8 +2025,7 @@
         meaningBox.classList.add('hidden-meaning');
 
         document.getElementById('knowNextHint').textContent = `${nextDays}일 뒤 복습`;
-        document.getElementById('reviewSkipBtn').textContent = reviewModalMode === 'deck' ? '복습 닫기' : '건너뛰기';
-        document.getElementById('reviewSyncNote').textContent = getAppsScriptUrl() ? '☁️ 구글 시트 실시간 동기화' : '💾 브라우저 로컬 저장 (⚙️에서 시트 연동)';
+        document.getElementById('reviewDeckCloseBtn').style.display = reviewModalMode === 'deck' ? 'inline-block' : 'none';
 
         speakPhrase(item.phrase);
     }
@@ -2068,10 +2065,6 @@
         } else {
             closeReviewModal(true);
         }
-    }
-
-    function skipReviewModal() {
-        closeReviewModal(reviewModalMode === 'transition');
     }
 
     function closeReviewModal(runCallback) {
